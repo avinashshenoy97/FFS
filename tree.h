@@ -16,7 +16,7 @@ typedef struct fs_tree_node {
     uint8_t type;                       //type of node
     char *name;                         //name of node
     char *fullname;                     //full path of node
-    struct fs_tree_node *children;      //links to children
+    struct fs_tree_node **children;      //links to children
     uint32_t len;                       //number of children
     struct fs_tree_node *parent;        //link to parent
 }fs_tree_node;
@@ -27,9 +27,13 @@ types:
     2 = firectory
 */
 
-
+int destroy_node(fs_tree_node *node);        //free all parts a node from the FS tree
 int init_fs();              //initialize FS tree with root
+int dfs_dispatch(fs_tree_node *curr, int (*foo)(fs_tree_node *));   // apply a function to a node and its children recursively
+
+
 fs_tree_node *node_exists(const char *path);        //check if node exists
 int add_fs_tree_node(const char *path, short type);     //add a node to FS tree at path
+int remove_fs_tree_node(const char *path);          //remove a node from FS tree
 
 #endif

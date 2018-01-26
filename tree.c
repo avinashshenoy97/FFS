@@ -18,15 +18,36 @@ static void error_log(char *fmt, ...) {
 }
 
 /*
+Free all dynamically allocated members of node
+Free node itself too
+return 0 if all okay, else return -1
+*/
+int destroy_node(fs_tree_node *node) {
+    error_log("%s called on %p", __func__, node);
+
+    free(node->name);
+    free(node->fullname);
+    
+    if(node->children != NULL)
+        free(node->children);
+    
+    node->parent = NULL;
+    free(node);
+
+    return 0;
+}
+
+/*
 Initialize the tree structure that stores the file system's tree
 */
 int init_fs() {
+    error_log("%s called", __func__);
     //path_to_mount = (char *)malloc(sizeof(char) * (strlen(mountPoint) + 1));
     //strcpy(path_to_mount, mountPoint);
 
     root = (fs_tree_node *)malloc(sizeof(fs_tree_node));
     //global_curr = (fs_tree_node *)malloc(sizeof(fs_tree_node));        //update this whenever CD is done
-    error_log("Root node at %p\n", root);
+    error_log("Root node at %p", root);
 
     root->type = 2;
     root->name = NULL;
@@ -39,19 +60,37 @@ int init_fs() {
 }
 
 /*
+Uses Depth-First-Search to recursively apply the function (foo) to each node under (curr) and to (curr) itself.
+*/
+int dfs_dispatch(fs_tree_node *curr, int (*foo)(fs_tree_node *)) {
+    error_log("%s called", __func__);
+
+    int i = 0;
+    if(curr->len > 0) {         // if curr has children
+        for(i = 0 ; i < curr->len ; i++)        // call dsf_dispatch on each child
+            dfs_dispatch(curr->children[i], foo);
+    }
+
+    // when a node with no children is found
+    // apply foo to it
+
+    foo(curr);
+}
+
+/*
 Returns address of node if node exists in FS tree, else 0.
 */
 fs_tree_node *node_exists(const char *path) {
-    error_log("node_exists called!\n");
-    error_log("Checking if : %s : exists\n", path);
+    error_log("%s called!", __func__);
+    error_log("Checking if : %s : exists", path);
 
     int s = 1, e = 0, l = strlen(path), sublen = 0;
     int i, j, found = 0;
     char *sub = NULL;
-    fs_tree_node *curr = &root;
+    fs_tree_node *curr = root;
     
     if(!strcmp(path, "/")) {
-        error_log("node_exists returning with %p!\n", curr);
+        error_log("%s returning with %p!", __func__, curr);
         return curr;
     }
 
@@ -72,20 +111,20 @@ fs_tree_node *node_exists(const char *path) {
 
         sublen = e - s + 1;
         if(sublen > 0) {
-            error_log("Length of part: %d\n", sublen);
+            error_log("Length of part: %d", sublen);
             sub = (char *)malloc(sizeof(char) * sublen);
             sub[sublen - 1] = 0;
 
             for(i = s, j = 0 ; i < e ; i++, j++)
                 sub[j] = path[i];
 
-            error_log("Part found : %s\n", sub);
-            error_log("Searching for part in %d children!\n", curr->len);
+            error_log("Part found : %s", sub);
+            error_log("Searching for part in %d children!", curr->len);
 
             for(i = 0 ; i < curr->len ; i++) {
-                if(!strcmp(((curr->children)[i]).name, sub)) {
-                    curr = curr->children + i;
-                    error_log("curr changed to %p\n", curr);
+                if(!strcmp(((curr->children)[i])->name, sub)) {
+                    curr = curr->children[i];
+                    error_log("curr changed to %p", curr);
                     found = 1;
                     break;
                 }
@@ -93,7 +132,7 @@ fs_tree_node *node_exists(const char *path) {
 
             free(sub);
             if(!found) {
-                error_log("node_exists returning with 0!\n");
+                error_log("%s returning with 0!", __func__);
                 return 0;
             }
         }
@@ -105,7 +144,7 @@ fs_tree_node *node_exists(const char *path) {
 
     }while(e != l);
     
-    error_log("node_exists returning with %p!\n", curr);
+    error_log("%s returning with %p!", __func__, curr);
     return curr;
 }
 
@@ -114,7 +153,9 @@ Create a file at (path) of type specified by (mode)
 If any intermediate directory in (path) doesn't exist, error is thrown
 */
 int add_fs_tree_node(const char *path, short type) {
-    fs_tree_node *curr = &root;
+    error_log("%s called!", __func__);
+
+    fs_tree_node *curr = root;
     int pathLength = strlen(path), sublen = 0;
     int i, j;
     char *temp = (char *)malloc(sizeof(char) * pathLength);     //to store path until one level higher than path given
@@ -124,7 +165,7 @@ int add_fs_tree_node(const char *path, short type) {
     temp[i] = 0;
     
     if(i == 0) {  //if root's child
-        error_log("Found to be root's child!\n");
+        error_log("Found to be root's child!");
         strcpy(temp, "/");
         i = 1;
     }
@@ -135,18 +176,19 @@ int add_fs_tree_node(const char *path, short type) {
         fileName[j] = path[i];
     fileName[sublen - 1] = 0;
 
-    error_log("Name of file : %s\n", fileName);
+    error_log("Name of file : %s", fileName);
 
     temp[i] = 0;
-    error_log("Checking if path : %s : exists\n", temp);
+    error_log("Checking if path : %s : exists", temp);
 
     if((curr = node_exists(temp))) {
-        error_log("Path found to exist with %d children!\n", curr->len);
+        error_log("Path found to exist with %d children!", curr->len);
         fs_tree_node *parent = curr;
 
         curr->len += 1;
-        curr->children = realloc(curr->children, sizeof(fs_tree_node) * curr->len);
-        curr = curr->children + (curr->len - 1);
+        curr->children = realloc(curr->children, sizeof(fs_tree_node *) * curr->len);
+        curr->children[curr->len - 1] = (fs_tree_node *)malloc(sizeof(fs_tree_node));
+        curr = curr->children[curr->len - 1];
         
         curr->name = (char *)malloc(sizeof(char) * sublen);     //add name to FS node
         strcpy(curr->name, fileName);
@@ -167,13 +209,49 @@ int add_fs_tree_node(const char *path, short type) {
                 break;
 
             default:
-                error_log("TYPE error in add_fs_tree_node!\n");
+                error_log("TYPE error in %s!", __func__);
         }
 
         curr->parent = parent;
     }
 
-    error_log("FS Node added at %p\n", curr);
+    error_log("FS Node added at %p", curr);
 
     free(temp);
+}
+
+/*
+Remove node at (path)
+If any intermediate directory in (path) doesn't exist, error is thrown
+*/
+int remove_fs_tree_node(const char *path) {
+    error_log("%s called with path %s", __func__, path);
+
+    if(!strcmp(path, "/")) {    //if root, return -1 (operation not permitted)
+        error_log("%s Returning with -1", __func__);
+        return -1;
+    }
+
+    // OS checks if path exists using getattr, no need to check explicitly
+    // using node_exists to get FS tree node
+
+    int i;
+    fs_tree_node *toDelete = node_exists(path);
+    fs_tree_node *parent = toDelete->parent;
+
+    error_log("Deleting node at %p, child of %p", toDelete, parent);
+
+    dfs_dispatch(toDelete, &destroy_node);
+
+    for(i = 0 ; i < parent->len ; i++) {
+        if(parent->children[i] == toDelete) {
+            error_log("%p found to be %d th child of %p", toDelete, i, parent);
+            break;
+        }
+    }
+
+    for( ; i < --(parent->len) ; i++)                   // shift all children back one position, effectively deleting the node
+        parent->children[i] = parent->children[i+1];
+
+    return 0;
 }

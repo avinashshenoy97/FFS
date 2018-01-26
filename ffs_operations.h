@@ -18,5 +18,6 @@
 int ffs_getattr(const char *path, struct stat *s);
 int ffs_mkdir(const char *path, mode_t m);
 int ffs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi);
+int ffs_rmdir(const char *path);
 
 #endif

@@ -8,6 +8,7 @@ static void error_log(char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
     
+    printf("\n");
     printf("FfS OPS : ");
     vprintf(fmt, args);
     printf("\n");
@@ -61,7 +62,14 @@ int ffs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, off_t of
 
     int i;
     for(i = 0 ; i < curr->len ; i++)
-        filler(buffer, curr->children[i].name, NULL, 0);
+        filler(buffer, curr->children[i]->name, NULL, 0);
 
     return 0;
+}
+
+int ffs_rmdir(const char *path) {
+    // OS checks if path exists using getattr, no need to check explicitly
+    // Just forward responsibility to tree.c function
+
+    return remove_fs_tree_node(path);
 }
