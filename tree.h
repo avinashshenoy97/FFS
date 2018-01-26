@@ -33,7 +33,7 @@ int dfs_dispatch(fs_tree_node *curr, int (*foo)(fs_tree_node *));   // apply a f
 
 
 fs_tree_node *node_exists(const char *path);        //check if node exists
-int add_fs_tree_node(const char *path, short type);     //add a node to FS tree at path
+fs_tree_node *add_fs_tree_node(const char *path, short type);     //add a node to FS tree at path
 int remove_fs_tree_node(const char *path);          //remove a node from FS tree
 
 #endif

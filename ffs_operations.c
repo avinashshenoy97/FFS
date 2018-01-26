@@ -17,16 +17,31 @@ static void error_log(char *fmt, ...) {
 }
 
 int ffs_getattr(const char *path, struct stat *s) {
-    error_log("ffs_getattr called on path : %s\n", path);
+    error_log("%s called on path : %s", __func__, path);
 
-    if(!node_exists(path)) {
+    fs_tree_node *curr = NULL;
+    if(!(curr = node_exists(path))) {
+        error_log("curr = %p ; not found returning!", curr);
         return -ENOENT;
     }
 
     memset(s, 0, sizeof(struct stat));
 
-    s->st_mode = S_IFDIR | 0755;
-    s->st_nlink = 2;
+    switch(curr->type) {
+        case 1:
+            s->st_mode = S_IFREG | 0755;
+            s->st_nlink = 1;
+            break;
+
+        case 2:
+            s->st_mode = S_IFDIR | 0755;
+            s->st_nlink = 2;
+            break;
+
+        default:
+            return -1;
+    }
+    
     s->st_size = 1024;
 
     time(&(s->st_atime));
@@ -35,13 +50,15 @@ int ffs_getattr(const char *path, struct stat *s) {
 }
 
 int ffs_mkdir(const char *path, mode_t m) {
-    error_log("Add FS tree node at path : %s\n", path);
+    error_log("%s called on path : %s", __func__, path);
+
+    error_log("Add FS tree node at path : %s", path);
     add_fs_tree_node(path, 2);
     return 0;
 }
 
 int ffs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi) {
-    error_log("ffs_readdir called on path : %s\n", path);
+    error_log("%s called on path : %s", __func__, path);
 
     fs_tree_node *curr = NULL;
 
@@ -58,7 +75,7 @@ int ffs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, off_t of
         //curr = curr->parent;            //get link to its parent node
     }
 
-    error_log("Path : %s : found to exist with %d children\n", path, curr->len);
+    error_log("Path : %s : found to exist with %d children", path, curr->len);
 
     int i;
     for(i = 0 ; i < curr->len ; i++)
@@ -68,6 +85,7 @@ int ffs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, off_t of
 }
 
 int ffs_rmdir(const char *path) {
+    error_log("%s called on path : %s", __func__, path);
     // OS checks if path exists using getattr, no need to check explicitly
     // Just forward responsibility to tree.c function
 

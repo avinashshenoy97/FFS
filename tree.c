@@ -57,6 +57,8 @@ int init_fs() {
     root->children = NULL;
     root->len = 0;
     root->parent = NULL;
+
+    return 0;
 }
 
 /*
@@ -75,6 +77,7 @@ int dfs_dispatch(fs_tree_node *curr, int (*foo)(fs_tree_node *)) {
     // apply foo to it
 
     foo(curr);
+    return 0;
 }
 
 /*
@@ -132,7 +135,7 @@ fs_tree_node *node_exists(const char *path) {
 
             free(sub);
             if(!found) {
-                error_log("%s returning with 0!", __func__);
+                error_log("%s returning with 0 not found!", __func__);
                 return 0;
             }
         }
@@ -151,8 +154,9 @@ fs_tree_node *node_exists(const char *path) {
 /*
 Create a file at (path) of type specified by (mode)
 If any intermediate directory in (path) doesn't exist, error is thrown
+Returns address of added node
 */
-int add_fs_tree_node(const char *path, short type) {
+fs_tree_node *add_fs_tree_node(const char *path, short type) {
     error_log("%s called!", __func__);
 
     fs_tree_node *curr = root;
@@ -218,6 +222,7 @@ int add_fs_tree_node(const char *path, short type) {
     error_log("FS Node added at %p", curr);
 
     free(temp);
+    return curr;
 }
 
 /*
