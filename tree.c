@@ -1,8 +1,21 @@
 #include "tree.h"
 
+// Root
+fs_tree_node *root;
 
-fs_tree_node *root, *global_curr;
+// Error logging for THIS MODULE, helps differentiate from logging of other modules
+// Prints errors and logging info to STDOUT
+// Passes format strings and args to vprintf, basically a wrapper for printf
+static void error_log(char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    
+    printf("TREE : ");
+    vprintf(fmt, args);
+    printf("\n");
 
+    va_end(args);
+}
 
 /*
 Initialize the tree structure that stores the file system's tree
@@ -12,8 +25,8 @@ int init_fs() {
     //strcpy(path_to_mount, mountPoint);
 
     root = (fs_tree_node *)malloc(sizeof(fs_tree_node));
-    global_curr = (fs_tree_node *)malloc(sizeof(fs_tree_node));        //update this whenever CD is done
-    printf("Root node at %p\n", root);
+    //global_curr = (fs_tree_node *)malloc(sizeof(fs_tree_node));        //update this whenever CD is done
+    error_log("Root node at %p\n", root);
 
     root->type = 2;
     root->name = NULL;
@@ -29,8 +42,8 @@ int init_fs() {
 Returns address of node if node exists in FS tree, else 0.
 */
 fs_tree_node *node_exists(const char *path) {
-    printf("node_exists called!\n");
-    printf("Checking if : %s : exists\n", path);
+    error_log("node_exists called!\n");
+    error_log("Checking if : %s : exists\n", path);
 
     int s = 1, e = 0, l = strlen(path), sublen = 0;
     int i, j, found = 0;
@@ -38,7 +51,7 @@ fs_tree_node *node_exists(const char *path) {
     fs_tree_node *curr = &root;
     
     if(!strcmp(path, "/")) {
-        printf("node_exists returning with %p!\n", curr);
+        error_log("node_exists returning with %p!\n", curr);
         return curr;
     }
 
@@ -59,20 +72,20 @@ fs_tree_node *node_exists(const char *path) {
 
         sublen = e - s + 1;
         if(sublen > 0) {
-            printf("Length of part: %d\n", sublen);
+            error_log("Length of part: %d\n", sublen);
             sub = (char *)malloc(sizeof(char) * sublen);
             sub[sublen - 1] = 0;
 
             for(i = s, j = 0 ; i < e ; i++, j++)
                 sub[j] = path[i];
 
-            printf("Part found : %s\n", sub);
-            printf("Searching for part in %d children!\n", curr->len);
+            error_log("Part found : %s\n", sub);
+            error_log("Searching for part in %d children!\n", curr->len);
 
             for(i = 0 ; i < curr->len ; i++) {
                 if(!strcmp(((curr->children)[i]).name, sub)) {
                     curr = curr->children + i;
-                    printf("curr changed to %p\n", curr);
+                    error_log("curr changed to %p\n", curr);
                     found = 1;
                     break;
                 }
@@ -80,7 +93,7 @@ fs_tree_node *node_exists(const char *path) {
 
             free(sub);
             if(!found) {
-                printf("node_exists returning with 0!\n");
+                error_log("node_exists returning with 0!\n");
                 return 0;
             }
         }
@@ -92,7 +105,7 @@ fs_tree_node *node_exists(const char *path) {
 
     }while(e != l);
     
-    printf("node_exists returning with %p!\n", curr);
+    error_log("node_exists returning with %p!\n", curr);
     return curr;
 }
 
@@ -111,7 +124,7 @@ int add_fs_tree_node(const char *path, short type) {
     temp[i] = 0;
     
     if(i == 0) {  //if root's child
-        printf("Found to be root's child!\n");
+        error_log("Found to be root's child!\n");
         strcpy(temp, "/");
         i = 1;
     }
@@ -122,13 +135,13 @@ int add_fs_tree_node(const char *path, short type) {
         fileName[j] = path[i];
     fileName[sublen - 1] = 0;
 
-    printf("Name of file : %s\n", fileName);
+    error_log("Name of file : %s\n", fileName);
 
     temp[i] = 0;
-    printf("Checking if path : %s : exists\n", temp);
+    error_log("Checking if path : %s : exists\n", temp);
 
     if((curr = node_exists(temp))) {
-        printf("Path found to exist with %d children!\n", curr->len);
+        error_log("Path found to exist with %d children!\n", curr->len);
         fs_tree_node *parent = curr;
 
         curr->len += 1;
@@ -154,13 +167,13 @@ int add_fs_tree_node(const char *path, short type) {
                 break;
 
             default:
-                printf("TYPE error in add_fs_tree_node!\n");
+                error_log("TYPE error in add_fs_tree_node!\n");
         }
 
         curr->parent = parent;
     }
 
-    printf("FS Node added at %p\n", curr);
+    error_log("FS Node added at %p\n", curr);
 
     free(temp);
 }

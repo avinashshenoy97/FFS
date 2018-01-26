@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <time.h>
+#include <stdarg.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -26,8 +27,9 @@ types:
     2 = firectory
 */
 
-int init_fs();
-fs_tree_node *node_exists(const char *path);
-int add_fs_tree_node(const char *path, short type);
+
+int init_fs();              //initialize FS tree with root
+fs_tree_node *node_exists(const char *path);        //check if node exists
+int add_fs_tree_node(const char *path, short type);     //add a node to FS tree at path
 
 #endif
