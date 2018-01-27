@@ -19,6 +19,8 @@ typedef struct fs_tree_node {
     struct fs_tree_node **children;      //links to children
     uint32_t len;                       //number of children
     struct fs_tree_node *parent;        //link to parent
+    uint8_t *data;						//data for read and write
+    uint64_t data_size;						//size of data
 }fs_tree_node;
 
 /*

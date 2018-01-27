@@ -100,3 +100,67 @@ int ffs_rmdir(const char *path) {
 
     return remove_fs_tree_node(path);
 }
+
+int ffs_open(const char *path, struct fuse_file_info *fi)
+{   
+    error_log("%s called on path : %s", __func__, path);
+
+    if ((fi->flags & O_ACCMODE) != O_RDONLY) //O_ACCMODE = O_RDONLY | O_WRONLY| O_RDWR
+        return 0;
+    else
+        return -EACCES;
+
+}
+
+int ffs_read(const char *path, const char *buf, size_t size, off_t offset,struct fuse_file_info *fi)
+{   
+    error_log("%s called on path : %s", __func__, path);
+
+    fs_tree_node *curr = NULL;
+    size_t len;
+    curr = node_exists(path);
+    len = curr->data_size;
+    if (offset < len) {
+        if (offset + size > len)
+            size = len - offset;
+        memcpy(buf, curr->data + offset, size);
+    } else
+        size = 0;
+
+    return size;
+}
+
+int ffs_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
+{   
+    error_log("%s called on path : %s", __func__, path);
+
+    fs_tree_node *curr = NULL;
+    size_t len;
+    curr = node_exists(path);
+    len = curr->data_size;
+
+    if (offset + size >= len){
+        void *new_buf;
+        if (offset+size == len)
+            return 0;
+
+        new_buf = realloc(curr->data, offset+size);
+        if (!new_buf && offset+size)
+            return -ENOMEM;
+
+        if (offset+size > len)
+            memset(new_buf + len, 0, offset+size-len);
+
+        curr->data = new_buf;
+        curr->data_size = offset+size;
+
+    return 0;
+    }
+    
+    memcpy(curr->data + offset, buf, size);
+
+    return size;
+}
+
+
+

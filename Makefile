@@ -1,4 +1,4 @@
-username = ubuntu
+username = anvith
 files = ffs_main.c ffs_operations.c tree.c
 compileflags = -D_FILE_OFFSET_BITS=64
 opflag = -o ffs
