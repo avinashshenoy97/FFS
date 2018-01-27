@@ -49,6 +49,15 @@ int ffs_getattr(const char *path, struct stat *s) {
     return 0;
 }
 
+int ffs_mknod(const char *path, mode_t m, dev_t d) {
+    error_log("%s called on path : %s", __func__, path);
+
+    error_log("Add FS tree node at path : %s", path);
+    add_fs_tree_node(path, 1);
+
+    return 0;
+}
+
 int ffs_mkdir(const char *path, mode_t m) {
     error_log("%s called on path : %s", __func__, path);
 

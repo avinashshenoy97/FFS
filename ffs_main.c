@@ -16,9 +16,9 @@
 char *path_to_mount;
 
 static struct fuse_operations ffs_operations = {
-    .getattr    = ffs_getattr,/*
+    .getattr    = ffs_getattr,
     //.readlink = ffs_readlink,
-    //.mknod    = ffs_mknod,*/
+    .mknod    = ffs_mknod,
     .mkdir      = ffs_mkdir,
     //.unlink     = ffs_unlink,
 	.rmdir	    = ffs_rmdir,
