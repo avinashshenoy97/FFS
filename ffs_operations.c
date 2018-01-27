@@ -42,7 +42,7 @@ int ffs_getattr(const char *path, struct stat *s) {
             return -1;
     }
     
-    s->st_size = 1024;
+    s->st_size = curr->data_size;
 
     time(&(s->st_atime));
     
@@ -105,14 +105,18 @@ int ffs_open(const char *path, struct fuse_file_info *fi)
 {   
     error_log("%s called on path : %s", __func__, path);
 
-    if ((fi->flags & O_ACCMODE) != O_RDONLY) //O_ACCMODE = O_RDONLY | O_WRONLY| O_RDWR
+    if ((fi->flags & O_ACCMODE) == O_CREAT) { //O_ACCMODE = O_RDONLY | O_WRONLY| O_RDWR
+        ffs_mknod(path, 0, 0);
         return 0;
-    else
-        return -EACCES;
+    }
+    //else //check permissions here
+        //return -EACCES;
+
+    return 0;
 
 }
 
-int ffs_read(const char *path, const char *buf, size_t size, off_t offset,struct fuse_file_info *fi)
+int ffs_read(const char *path, char *buf, size_t size, off_t offset,struct fuse_file_info *fi)
 {   
     error_log("%s called on path : %s", __func__, path);
 
@@ -120,45 +124,56 @@ int ffs_read(const char *path, const char *buf, size_t size, off_t offset,struct
     size_t len;
     curr = node_exists(path);
     len = curr->data_size;
+
+    error_log("curr found at %p with data %d", curr, len);
+
     if (offset < len) {
         if (offset + size > len)
             size = len - offset;
         memcpy(buf, curr->data + offset, size);
-    } else
+    } 
+    else {
         size = 0;
+        strcpy(buf, "");
+    }
 
     return size;
 }
 
 int ffs_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
 {   
-    error_log("%s called on path : %s", __func__, path);
+    error_log("%s called on path : %s ; to write : %s ; size = %d ; offset = %d ;", __func__, path, buf, size, offset);
 
     fs_tree_node *curr = NULL;
     size_t len;
     curr = node_exists(path);
     len = curr->data_size;
 
+    error_log("curr found at %p with data %d", curr, len);
+
     if (offset + size >= len){
         void *new_buf;
-        if (offset+size == len)
-            return 0;
 
-        new_buf = realloc(curr->data, offset+size);
-        if (!new_buf && offset+size)
+        new_buf = realloc(curr->data, offset+size+1);
+        if (!new_buf && offset+size) {
+            error_log("Failed to realloc! %p && %d = %d", new_buf, offset+size, (!new_buf && offset+size));
             return -ENOMEM;
+        }
+        else if(new_buf != curr->data)
+            curr->data = new_buf;
+            
+        error_log("successfuly realloced to %d!", offset+size+1);
 
-        if (offset+size > len)
-            memset(new_buf + len, 0, offset+size-len);
-
-        curr->data = new_buf;
-        curr->data_size = offset+size;
-
-    return 0;
+        memset(curr->data + offset, 0, size);
+        
+        error_log("Erased data from offset %d to size %d!", offset, size);
+        //curr->data = new_buf;
     }
     
     memcpy(curr->data + offset, buf, size);
+    curr->data_size = offset+size;
 
+    error_log("Copied data! Returning with size %d!", size);
     return size;
 }
 

@@ -219,8 +219,10 @@ fs_tree_node *add_fs_tree_node(const char *path, short type) {
         curr->parent = parent;
     }
 
-    error_log("FS Node added at %p", curr);
+    curr->data = NULL;
+    curr->data_size = 0;
 
+    error_log("FS Node added at %p", curr);
     free(temp);
     return curr;
 }
