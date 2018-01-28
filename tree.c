@@ -167,11 +167,11 @@ fs_tree_node *add_fs_tree_node(const char *path, short type) {
     
     for(i = pathLength - 1 ; temp[i] != '/' ; i--);     //find first / from back of path
     temp[i] = 0;
+    i += 1;
     
     if(i == 0) {  //if root's child
         error_log("Found to be root's child!");
         strcpy(temp, "/");
-        i = 1;
     }
 
     sublen = (pathLength - i + 1);
