@@ -104,11 +104,11 @@ int ffs_rmdir(const char *path) {
 int ffs_open(const char *path, struct fuse_file_info *fi)
 {   
     error_log("%s called on path : %s", __func__, path);
-
+    /*
     if ((fi->flags & O_ACCMODE) == O_CREAT) { //O_ACCMODE = O_RDONLY | O_WRONLY| O_RDWR
         ffs_mknod(path, 0, 0);
         return 0;
-    }
+    }*/
     //else //check permissions here
         //return -EACCES;
 
@@ -154,14 +154,14 @@ int ffs_write(const char *path, const char *buf, size_t size, off_t offset, stru
     if (offset + size >= len){
         void *new_buf;
 
-        new_buf = realloc(curr->data, offset+size+1);
+        new_buf = reallocate(curr, offset+size+1);
         if (!new_buf && offset+size) {
             error_log("Failed to realloc! %p && %d = %d", new_buf, offset+size, (!new_buf && offset+size));
             return -ENOMEM;
         }
         else if(new_buf != curr->data)
             curr->data = new_buf;
-            
+
         error_log("successfuly realloced to %d!", offset+size+1);
 
         memset(curr->data + offset, 0, size);

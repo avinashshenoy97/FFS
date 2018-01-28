@@ -1,5 +1,5 @@
-username = anvith
-files = ffs_main.c ffs_operations.c tree.c
+username = ubuntu
+files = ffs_main.c ffs_operations.c tree.c disk.c
 compileflags = -D_FILE_OFFSET_BITS=64
 opflag = -o ffs
 neededflag = `pkg-config fuse --libs` -DFUSE_USE_VERSION=22
@@ -9,7 +9,7 @@ all: run
 run: compile	
 	./ffs -f /home/$(username)/Desktop/mountpoint
 
-debugrun: dcompile
+drun: dcompile
 	./ffs -d -f -s /home/$(username)/Desktop/mountpoint
 
 compile: checkdir

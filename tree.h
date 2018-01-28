@@ -11,22 +11,27 @@
 #include <sys/stat.h>
 #include <errno.h>
 
+//#include "disk.h"
+
 
 typedef struct fs_tree_node {
     uint8_t type;                       //type of node
     char *name;                         //name of node
     char *fullname;                     //full path of node
+    
+    struct fs_tree_node *parent;        //link to parent
     struct fs_tree_node **children;      //links to children
     uint32_t len;                       //number of children
-    struct fs_tree_node *parent;        //link to parent
+
     uint8_t *data;						//data for read and write
     uint64_t data_size;						//size of data
+    uint64_t block_count;               // number of blocks
 }fs_tree_node;
 
 /*
 types:
     1 = file
-    2 = firectory
+    2 = directory
 */
 
 int destroy_node(fs_tree_node *node);        //free all parts a node from the FS tree

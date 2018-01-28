@@ -32,8 +32,11 @@ int destroy_node(fs_tree_node *node) {
         free(node->children);
     
     node->parent = NULL;
-    free(node);
 
+    if(node->data != NULL)
+        deallocate(node->data);
+    
+    free(node);
     return 0;
 }
 
@@ -57,6 +60,9 @@ int init_fs() {
     root->children = NULL;
     root->len = 0;
     root->parent = NULL;
+    root->data = NULL;
+    root->data_size = 0;
+    root->block_count = 0;
 
     return 0;
 }
@@ -65,12 +71,14 @@ int init_fs() {
 Uses Depth-First-Search to recursively apply the function (foo) to each node under (curr) and to (curr) itself.
 */
 int dfs_dispatch(fs_tree_node *curr, int (*foo)(fs_tree_node *)) {
-    error_log("%s called", __func__);
+    error_log("%s called on node %s", __func__, curr->fullname);
 
     int i = 0;
-    if(curr->len > 0) {         // if curr has children
+    if(curr->len > 0 && curr->type == 2) {         // if curr has children and is directory
+        error_log("Has %d children, curr->children is %p", curr->len, curr->children);
         for(i = 0 ; i < curr->len ; i++)        // call dsf_dispatch on each child
-            dfs_dispatch(curr->children[i], foo);
+            if(curr->children[i]->type == 2)                    //if it is a directory, only dirs can have children
+                dfs_dispatch(curr->children[i], foo);
     }
 
     // when a node with no children is found
@@ -168,7 +176,7 @@ fs_tree_node *add_fs_tree_node(const char *path, short type) {
     for(i = pathLength - 1 ; temp[i] != '/' ; i--);     //find first / from back of path
     temp[i] = 0;
     i += 1;
-    
+
     if(i == 0) {  //if root's child
         error_log("Found to be root's child!");
         strcpy(temp, "/");
@@ -203,24 +211,13 @@ fs_tree_node *add_fs_tree_node(const char *path, short type) {
         curr->children = NULL;
 
         curr->type = type;
-        switch(type) {
-            case 1:
-                curr->len = -1;
-                break;
-
-            case 2:
-                curr->len = 0;
-                break;
-
-            default:
-                error_log("TYPE error in %s!", __func__);
-        }
-
+        curr->len = 0;
         curr->parent = parent;
     }
 
     curr->data = NULL;
     curr->data_size = 0;
+    curr->block_count = 0;
 
     error_log("FS Node added at %p", curr);
     free(temp);
