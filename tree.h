@@ -26,6 +26,10 @@ typedef struct fs_tree_node {
     uint8_t *data;						//data for read and write
     uint64_t data_size;						//size of data
     uint64_t block_count;               // number of blocks
+
+    struct timespec st_atim;            /* time of last access */
+    struct timespec st_mtim;            /* time of last modification */
+    struct timespec st_ctim;            /* time of last status change */
 }fs_tree_node;
 
 /*

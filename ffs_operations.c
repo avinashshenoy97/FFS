@@ -44,7 +44,9 @@ int ffs_getattr(const char *path, struct stat *s) {
     
     s->st_size = curr->data_size;
 
-    time(&(s->st_atime));
+    s->st_atime = (curr->st_atim).tv_sec;
+    s->st_mtime = (curr->st_mtim).tv_sec;
+    s->st_ctime = (curr->st_ctim).tv_sec;
     
     return 0;
 }
@@ -178,4 +180,25 @@ int ffs_write(const char *path, const char *buf, size_t size, off_t offset, stru
 }
 
 
+int ffs_utimens(const char *path, const struct timespec tv[2]) {
+    error_log("%s called on path : %s", __func__, path);
+    error_log("atime = %s; mtime = %s \n", ctime(&(tv[0].tv_sec)), ctime(&(tv[1].tv_sec)));
 
+    fs_tree_node *curr = node_exists(path);
+
+    if(!curr)
+        return -ENOENT;
+    
+    if(curr->st_atim.tv_sec < tv[0].tv_sec)
+        curr->st_atim.tv_sec = tv[0].tv_sec;
+
+    if(curr->st_mtim.tv_sec < tv[1].tv_sec)
+        curr->st_mtim.tv_sec = tv[1].tv_sec;
+    
+    /*
+    curr->st_atim.tv_nsec = tv[0].tv_nsec;
+    curr->st_mtim.tv_nsec = tv[1].tv_nsec;
+    */
+
+    return 0;
+}

@@ -219,6 +219,9 @@ fs_tree_node *add_fs_tree_node(const char *path, short type) {
     curr->data_size = 0;
     curr->block_count = 0;
 
+    time(&(curr->st_ctim));
+    curr->st_mtim = curr->st_atim = curr->st_ctim;
+
     error_log("FS Node added at %p", curr);
     free(temp);
     return curr;
