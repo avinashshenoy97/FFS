@@ -1,4 +1,5 @@
 #ifndef FFS_TREE_H
+#define FFS_TREE_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,7 +12,7 @@
 #include <sys/stat.h>
 #include <errno.h>
 
-//#include "disk.h"
+#include "disk.h"
 
 
 typedef struct fs_tree_node {

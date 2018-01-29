@@ -1,4 +1,5 @@
 #ifndef FFS_OPERATIONS_H
+#define FFS_OPERATIONS_H
 
 #include <stdio.h>
 #include <stdlib.h>
