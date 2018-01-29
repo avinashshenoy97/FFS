@@ -1,6 +1,7 @@
 #include "ffs_operations.h"
 #include "tree.h"
 
+
 // Error logging for THIS MODULE, helps differentiate from logging of other modules
 // Prints errors and logging info to STDOUT
 // Passes format strings and args to vprintf, basically a wrapper for printf
@@ -202,3 +203,59 @@ int ffs_utimens(const char *path, const struct timespec tv[2]) {
 
     return 0;
 }
+
+int ffs_truncate(const char* path, off_t size)
+{
+
+ 	error_log("%s called on path : %s ; to change to size = %d ;", __func__, path,size);
+
+    fs_tree_node *curr = NULL;
+    size_t len;
+    curr = node_exists(path);
+    len = curr->data_size;
+
+    error_log("curr found at %p with data %d", curr, len);
+    void *new_buf;
+    
+    if(len<size)      
+    {  	 
+    	 new_buf = reallocate(curr, size+1);
+    	 
+    	 if(!new_buf)
+    	 {
+      		return -ENOMEM;
+    	 }
+    	 
+    	 //memcpy(new_buf, curr->data, len);
+   		 //free(curr->data);
+   		 //curr->data = new_data;
+   	}
+   	else if(len>size)
+	{
+	
+		 new_buf = reallocate(curr, size+1);
+    	 
+    	 if(!new_buf)
+    	 {
+      		return -ENOMEM;
+    	 }
+	
+   		//memcpy(new_buf, curr->data, size);
+    	//free(curr->data);
+   	    //curr->data = new_buf;
+   	    
+   	 } 	 
+   	 
+   	 // Fill remaining space with zeroes
+ 	 if(len<size)
+ 	 {
+    	memset(curr->data + len, 0, size-len);
+  	 }
+  	 
+ 	 // Update file size
+  	 curr->data_size = size;
+  	 
+  	 return 0;
+    
+}
+
