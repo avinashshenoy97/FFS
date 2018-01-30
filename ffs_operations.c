@@ -259,3 +259,14 @@ int ffs_truncate(const char* path, off_t size)
     
 }
 
+
+int ffs_unlink(const char *path)
+ {
+  
+  	error_log("%s called on path : %s ;", __func__, path);
+    
+    return remove_fs_tree_node(path);
+
+}
+
+
