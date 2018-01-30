@@ -181,20 +181,20 @@ int ffs_write(const char *path, const char *buf, size_t size, off_t offset, stru
 }
 
 
-int ffs_utimens(const char *path, const struct timespec tv[2]) {
+int ffs_utimens(const char *path, struct utimbuf *tv) {
     error_log("%s called on path : %s", __func__, path);
-    error_log("atime = %s; mtime = %s \n", ctime(&(tv[0].tv_sec)), ctime(&(tv[1].tv_sec)));
+    error_log("atime = %s; mtime = %s ", ctime(&(tv->actime)), ctime(&(tv->modtime)));
 
     fs_tree_node *curr = node_exists(path);
 
     if(!curr)
         return -ENOENT;
     
-    if(curr->st_atim.tv_sec < tv[0].tv_sec)
-        curr->st_atim.tv_sec = tv[0].tv_sec;
+    if(curr->st_atim.tv_sec < tv->actime)
+        curr->st_atim.tv_sec = tv->actime;
 
-    if(curr->st_mtim.tv_sec < tv[1].tv_sec)
-        curr->st_mtim.tv_sec = tv[1].tv_sec;
+    if(curr->st_mtim.tv_sec < tv->modtime)
+        curr->st_mtim.tv_sec = tv->modtime;
     
     /*
     curr->st_atim.tv_nsec = tv[0].tv_nsec;

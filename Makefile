@@ -1,4 +1,4 @@
-username = hduser
+username = $(shell whoami)
 files = ffs_main.c ffs_operations.c tree.c disk.c
 compileflags = -D_FILE_OFFSET_BITS=64
 opflag = -o ffs

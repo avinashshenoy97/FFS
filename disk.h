@@ -21,7 +21,6 @@
 #include "tree.h"
 
 typedef struct fs_tree_node fs_tree_node;
-extern struct fs_tree_node;
 
 #define BLOCK_SIZE 4096                         // block size 4 KB
 #define MAX_FILE_SIZE 18446744073709551616    // bytes, largest possible value in unsigned 64 bit int; 13.6 EB (Exabytes)

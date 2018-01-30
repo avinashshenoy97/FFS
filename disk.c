@@ -30,7 +30,7 @@ void *allocate(fs_tree_node *node, uint64_t n) {
     node->data = (uint8_t *)malloc(n * BLOCK_SIZE);
 
     if(!node->data)
-        return -ENOMEM;
+        return (void *)(-ENOMEM);
 
     node->block_count = n;
     return (void *)(node->data);

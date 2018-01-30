@@ -34,7 +34,7 @@ int destroy_node(fs_tree_node *node) {
     node->parent = NULL;
 
     if(node->data != NULL)
-        deallocate(node->data);
+        deallocate(node);
     
     free(node);
     return 0;
@@ -219,7 +219,7 @@ fs_tree_node *add_fs_tree_node(const char *path, short type) {
     curr->data_size = 0;
     curr->block_count = 0;
 
-    time(&(curr->st_ctim));
+    time(&(curr->st_ctim).tv_sec);
     curr->st_mtim = curr->st_atim = curr->st_ctim;
 
     error_log("FS Node added at %p", curr);

@@ -29,3 +29,8 @@ The mountpoint is a folder created on your Desktop. You can `cd` into `~/Desktop
 Use this command to unmount FFS (remember to cd out of it first!)
 
     fusermount -u ~/Desktop/mountpoint
+
+
+You can also start FFS in debug mode with
+
+    make drun

@@ -24,7 +24,7 @@ int ffs_rmdir(const char *path);
 int ffs_open(const char *path, struct fuse_file_info *fi);
 int ffs_read(const char *path, char *buf, size_t size, off_t offset,struct fuse_file_info *fi);
 int ffs_write(const char *path, const char *buf, size_t size, off_t offset,struct fuse_file_info *fi);
-int ffs_utimens(const char *path, const struct timespec tv[2]);
+int ffs_utimens(const char *path, struct utimbuf *tv);
 int ffs_truncate(const char* path, off_t size);
 int ffs_unlink(const char *path);
 
