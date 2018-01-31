@@ -28,6 +28,7 @@ int ffs_write(const char *path, const char *buf, size_t size, off_t offset,struc
 int ffs_utimens(const char *path, struct utimbuf *tv);
 int ffs_truncate(const char* path, off_t size);
 int ffs_unlink(const char *path);
+int ffs_chmod(const char *path, mode_t setPerm);
 
 
 #endif

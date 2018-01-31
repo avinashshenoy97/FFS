@@ -164,7 +164,7 @@ Create a file at (path) of type specified by (mode)
 If any intermediate directory in (path) doesn't exist, error is thrown
 Returns address of added node
 */
-fs_tree_node *add_fs_tree_node(const char *path, short type) {
+fs_tree_node *add_fs_tree_node(const char *path, uint8_t type) {
     error_log("%s called! path = %s \t type=%d", __func__, path, type);
 
     fs_tree_node *curr = root;
@@ -194,6 +194,9 @@ fs_tree_node *add_fs_tree_node(const char *path, short type) {
     error_log("Checking if path : %s : exists", temp);
 
     if((curr = node_exists(temp))) {
+        // FUSE checks for entire path to exist (and makes sure it will exist when this called)
+        // Hence this block will usually be executed
+
         error_log("Path found to exist with %d children!", curr->len);
         fs_tree_node *parent = curr;
 
@@ -215,12 +218,28 @@ fs_tree_node *add_fs_tree_node(const char *path, short type) {
         curr->parent = parent;
     }
 
+    curr->uid = getuid();
+    curr->gid = getgid();
+
     curr->data = NULL;
     curr->data_size = 0;
     curr->block_count = 0;
 
     time(&(curr->st_ctim).tv_sec);
     curr->st_mtim = curr->st_atim = curr->st_ctim;
+
+    switch(type) {
+        case 1:
+            curr->perms = DEF_FILE_PERM;
+            curr->nlinks = 1;
+            break;
+
+        case 2:
+            curr->perms = DEF_DIR_PERM;
+            curr->parent->nlinks += 1;
+            curr->nlinks = 2;
+            break;
+    }
 
     error_log("FS Node added at %p", curr);
     free(temp);

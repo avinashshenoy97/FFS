@@ -30,19 +30,22 @@ int ffs_getattr(const char *path, struct stat *s) {
 
     switch(curr->type) {
         case 1:
-            s->st_mode = S_IFREG | 0755;
-            s->st_nlink = 1;
+            s->st_mode = S_IFREG | curr->perms;
             break;
 
         case 2:
-            s->st_mode = S_IFDIR | 0755;
-            s->st_nlink = 2;
+            s->st_mode = S_IFDIR | curr->perms;
             break;
 
         default:
-            return -1;
+            return -ENOTSUP;
     }
     
+    s->st_uid = curr->uid;
+    s->st_gid = curr->gid;
+
+    s->st_nlink = curr->nlinks;
+
     s->st_size = curr->data_size;
 
     s->st_atime = (curr->st_atim).tv_sec;
@@ -412,6 +415,26 @@ int ffs_rename(const char *from, const char *to) {
     }
 
     error_log("end of %s reached, going to return 0", __func__);
+
+    return 0;
+}
+
+int ffs_chmod(const char *path, mode_t setPerm) {
+    error_log("%s called on path : %s ; to set : %d", __func__, path, setPerm);
+
+    fs_tree_node *curr = node_exists(path);
+    if(!curr) {
+        error_log("File not found!");
+        
+        return -ENOENT;
+    }
+
+    uint32_t curr_uid = getuid();
+    if(curr_uid == curr->uid || !curr_uid) {        // if owner is doing chmod or root is
+        error_log("Current user (%d) has permissions to chmod", curr_uid);
+
+        curr->perms = setPerm;
+    }
 
     return 0;
 }
