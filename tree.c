@@ -165,7 +165,7 @@ If any intermediate directory in (path) doesn't exist, error is thrown
 Returns address of added node
 */
 fs_tree_node *add_fs_tree_node(const char *path, short type) {
-    error_log("%s called!", __func__);
+    error_log("%s called! path = %s \t type=%d", __func__, path, type);
 
     fs_tree_node *curr = root;
     int pathLength = strlen(path), sublen = 0;
@@ -177,7 +177,7 @@ fs_tree_node *add_fs_tree_node(const char *path, short type) {
     temp[i] = 0;
     i += 1;
 
-    if(i == 0) {  //if root's child
+    if(i == 1) {  //if root's child
         error_log("Found to be root's child!");
         strcpy(temp, "/");
     }
@@ -259,6 +259,32 @@ int remove_fs_tree_node(const char *path) {
 
     for( ; i < --(parent->len) ; i++)                   // shift all children back one position, effectively deleting the node
         parent->children[i] = parent->children[i+1];
+
+    return 0;
+}
+
+/*
+Copies all members from (from) to (to), except link to parent, name and fullname
+Assumes both nodes already exist and are allocated space, but pointer members of (to) are not allocated
+Does not free anything, strictly copy
+Returns 0
+*/
+int copy_nodes(fs_tree_node *from, fs_tree_node *to) {
+    to->type = from->type;                       //type of node
+    //to->name = from->name;                         //name of node
+    //to->fullname = from->fullname;                     //full path of node
+
+    //to->parent = from->parent;        //link to parent
+    to->children = from->children;      //links to children
+    to->len = from->len;                       //number of children
+
+    to->data = from->data;						//data for read and write
+    to->data_size = from->data_size;						//size of data
+    to->block_count = from->block_count;               // number of blocks
+
+    to->st_atim = from->st_atim;            /* time of last access */
+    to->st_mtim = from->st_mtim;            /* time of last modification */
+    to->st_ctim = from->st_ctim;            /* time of last status change */
 
     return 0;
 }

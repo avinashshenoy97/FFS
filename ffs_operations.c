@@ -270,3 +270,148 @@ int ffs_unlink(const char *path)
 }
 
 
+int ffs_rename(const char *from, const char *to) {
+    error_log("%s called from : %s ; to : %s", __func__, from, to);
+
+    // check if destination exists
+    fs_tree_node *to_node = node_exists(to);
+    fs_tree_node *from_node = node_exists(from);
+
+    if(!from) {             // if from doesn't exist
+        error_log("from file not found");
+        return -ENOENT;
+    }
+
+    if(from_node->type == 1) {   // if from node is a file
+        error_log("from node is a file");
+        if(to_node) {   // if to node exists
+            error_log("to node exists");
+            if(to_node->type == 1) {    // if to node is also file
+                error_log("to node is a file");
+
+                remove_fs_tree_node(to);    // remove dest file
+                error_log("to node was removed");
+                add_fs_tree_node(to, 1);        // create new file at dest
+                error_log("to node was added");
+                copy_nodes(from_node, to_node);       // copy structs
+                error_log("from node was copied to to node");
+
+                // Now, remove from node without destroying from_node's members (since to is using its members)
+                fs_tree_node *from_parent = from_node->parent;      // get parent of source node
+                free(from_node->name);
+                free(from_node->fullname);
+                free(from_node);    // free the struct itself
+
+                error_log("from node was freed");
+
+                // Now, remove from_node from it's parent's children array
+                int i;
+                for(i = 0 ; i < from_parent->len ; i++) {
+                    if(from_parent->children[i] == from_node) {
+                        // when from_node is found in it's parents children array, move all other children ahead of it back, effectively removing it
+                        error_log("from_node found to be the %d th child of its parent %p", i, from_parent);
+                        int j;
+                        for(j = i + 1 ; j < from_parent->len ; j++) {
+                            from_parent->children[j-1] = from_parent->children[j];
+                        }
+                        from_parent->len -= 1;  //reduce child count by 1
+                        error_log("from_parents children reduced from %d to %d", from_parent->len-1, from_parent->len);
+                        break;  
+                    }
+                }
+            }
+            else if(to_node->type == 2) {   // if to node is a directory, from node must become child of the to_node
+                // this block will probably never execute
+                // if to path is a dir, OS or FUSE changes to path to dir/(from_file_name), i.e, same file name as from path but inside the folder specified in the (to) path
+                error_log("to node is a dir, not yet implemented");
+                
+                return -EISDIR; // return "is a dir"
+            }
+        }
+        else {  // if to node does not exist
+            fs_tree_node *temp = add_fs_tree_node(to, 1);        // create file at dest
+            copy_nodes(from_node, temp);    // copy from to to
+
+            // Now, remove from node without destroying from_node's members (since to is using its members)
+            fs_tree_node *from_parent = from_node->parent;      // get parent of source node
+            free(from_node->name);
+            free(from_node->fullname);
+            free(from_node);    // free the struct itself
+                
+            error_log("from node was freed");
+
+            // Now, remove from_node from it's parent's children array
+            int i;
+            for(i = 0 ; i < from_parent->len ; i++) {
+                if(from_parent->children[i] == from_node) {
+                    // when from_node is found in it's parents children array, move all other children ahead of it back, effectively removing it
+                    error_log("from_node found to be the %d th child of its parent %p", i, from_parent);
+                    int j;
+                    for(j = i + 1 ; j < from_parent->len ; j++) {
+                        from_parent->children[j-1] = from_parent->children[j];
+                    }
+                    from_parent->len -= 1;  //reduce child count by 1
+                    error_log("from_parents children reduced from %d to %d", from_parent->len-1, from_parent->len);
+                    break;  
+                }
+            }
+        }
+    }
+    else {
+        // if from_node is a directory
+        error_log("from node must be a dir");
+
+        if(to_node) {   // if it exists
+            error_log("to node exists");
+
+            if(to_node->type == 1) {     // check if its a file
+                error_log("to node is a file");
+                // this block will probably never execute
+                // if to path is a file and from is a dir, OS or FUSE will refuse automatically
+
+                return -EEXIST;     //if it is a file, return "File already exists" error like Ubuntu does
+            }
+            else {
+                error_log("to node is a dir, deleting");
+                remove_fs_tree_node(to);
+                error_log("Deleted!");
+            }
+        }
+        else {      // if it doesn't exist
+            error_log("to node does not exist");
+        }
+
+        to_node = add_fs_tree_node(to, 2);    // create the directory
+        error_log("Added node");
+        copy_nodes(from_node, to_node);
+        error_log("Copied from to to");
+
+        // Now, remove from node without destroying from_node's members (since to is using its members)
+        fs_tree_node *from_parent = from_node->parent;      // get parent of source node
+        free(from_node->name);
+        free(from_node->fullname);
+        free(from_node);    // free the struct itself
+
+        error_log("from node was freed");
+
+        // Now, remove from_node from it's parent's children array
+        int i;
+        for(i = 0 ; i < from_parent->len ; i++) {
+            if(from_parent->children[i] == from_node) {
+                // when from_node is found in it's parents children array, move all other children ahead of it back, effectively removing it
+                error_log("from_node found to be the %d th child of its parent %p", i, from_parent);
+                int j;
+                for(j = i + 1 ; j < from_parent->len ; j++) {
+                    from_parent->children[j-1] = from_parent->children[j];
+                }
+                from_parent->len -= 1;  //reduce child count by 1
+                error_log("from_parents children reduced from %d to %d", from_parent->len-1, from_parent->len);
+                break;  
+            }
+        }
+    }
+
+    error_log("end of %s reached, going to return 0", __func__);
+
+    return 0;
+}
