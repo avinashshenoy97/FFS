@@ -5,8 +5,7 @@
 // Prints errors and logging info to STDOUT
 // Passes format strings and args to vprintf, basically a wrapper for printf
 static void error_log(char *fmt, ...) {
-    if(!(ERR_FLAG))
-        return;
+#ifdef ERR_FLAG
     va_list args;
     va_start(args, fmt);
     
@@ -15,6 +14,7 @@ static void error_log(char *fmt, ...) {
     printf("\n");
 
     va_end(args);
+#endif
 }
 
 /*
