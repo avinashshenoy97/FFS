@@ -6,6 +6,8 @@
 // Prints errors and logging info to STDOUT
 // Passes format strings and args to vprintf, basically a wrapper for printf
 static void error_log(char *fmt, ...) {
+    if(!(ERR_FLAG))
+        return;
     va_list args;
     va_start(args, fmt);
     
@@ -110,16 +112,33 @@ int ffs_rmdir(const char *path) {
 int ffs_open(const char *path, struct fuse_file_info *fi)
 {   
     error_log("%s called on path : %s", __func__, path);
-    /*
-    if ((fi->flags & O_ACCMODE) == O_CREAT) { //O_ACCMODE = O_RDONLY | O_WRONLY| O_RDWR
-        ffs_mknod(path, 0, 0);
+    
+    fs_tree_node *curr = node_exists(path);
+    uint32_t check = 0;
+    switch(fi->flags & O_ACCMODE) {
+        case O_RDWR:
+            error_log("O_RDWR");
+            check = check | 0666;
+            break;
+        
+        case O_RDONLY:
+            error_log("O_RDONLY");
+            check = check | 0444;
+            break;
+
+        case O_WRONLY:
+            error_log("O_WRONLY");
+            check = check | 0222;
+            break;
+    }
+
+    error_log("%d %d %d", curr->perms, check, curr->perms & check);
+    if(curr->perms & check) {
+        error_log("Allowed to open!");
         return 0;
-    }*/
-    //else //check permissions here
-        //return -EACCES;
+    }
 
-    return 0;
-
+    return -EACCES;
 }
 
 int ffs_read(const char *path, char *buf, size_t size, off_t offset,struct fuse_file_info *fi)
@@ -435,6 +454,37 @@ int ffs_chmod(const char *path, mode_t setPerm) {
 
         curr->perms = setPerm;
     }
+    else {
+        error_log("Current user (%d) DOESNT permissions to chown", curr_uid); 
+        return -EACCES;
+    }
+
+    return 0;
+}
+
+int ffs_chown(const char *path, uid_t u, gid_t g) {
+    error_log("%s called on path : %s ; to set : u = %d\t g = %d", __func__, path, u, g);
+
+    fs_tree_node *curr = node_exists(path);
+    if(!curr) {
+        error_log("File not found!");
+        
+        return -ENOENT;
+    }
+
+    uid_t curr_user = getuid();
+
+    if(curr_user != 0 && curr_user != curr->uid) {       // only root or owner can chown a file
+        error_log("Current user (%d) DOESNT permissions to chown file owned by %d", curr_user, curr->uid); 
+        return -EACCES;
+    }
+    error_log("Current user (%d) has permissions to chown", curr_user); 
+
+    if(u != -1)
+        curr->uid = u;
+
+    if(g != -1)
+        curr->gid = g;
 
     return 0;
 }

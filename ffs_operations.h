@@ -29,6 +29,7 @@ int ffs_utimens(const char *path, struct utimbuf *tv);
 int ffs_truncate(const char* path, off_t size);
 int ffs_unlink(const char *path);
 int ffs_chmod(const char *path, mode_t setPerm);
+int ffs_chown(const char *path, uid_t u, gid_t g);
 
 
 #endif

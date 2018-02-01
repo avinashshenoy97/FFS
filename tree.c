@@ -7,6 +7,8 @@ fs_tree_node *root;
 // Prints errors and logging info to STDOUT
 // Passes format strings and args to vprintf, basically a wrapper for printf
 static void error_log(char *fmt, ...) {
+    if(!(ERR_FLAG))
+        return;
     va_list args;
     va_start(args, fmt);
     
