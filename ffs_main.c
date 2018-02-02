@@ -7,10 +7,14 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <errno.h>
 
 #include <fuse.h>
 #include "ffs_operations.h"
 #include "tree.h"
+
+
+// macros for backward compatibility
 
 
 char *path_to_mount;
@@ -23,10 +27,10 @@ static struct fuse_operations ffs_operations = {
     .unlink     = ffs_unlink,
 	.rmdir	    = ffs_rmdir,
 	//.symlink	= ffs_symlink,
-	//.rename	    = ffs_rename,
+	.rename	    = ffs_rename,
 	//.link	    = ffs_link,
-	//.chmod	    = ffs_chmod,
-	//.chown	    = ffs_chown,*/
+	.chmod	    = ffs_chmod,
+	.chown	    = ffs_chown,
 	.truncate   = ffs_truncate,
 	.open	    = ffs_open,
 	.read	    = ffs_read,

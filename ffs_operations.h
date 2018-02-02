@@ -21,12 +21,15 @@ int ffs_mknod(const char *path, mode_t m, dev_t d);
 int ffs_mkdir(const char *path, mode_t m);
 int ffs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi);
 int ffs_rmdir(const char *path);
+int ffs_rename(const char *from, const char *to);
 int ffs_open(const char *path, struct fuse_file_info *fi);
 int ffs_read(const char *path, char *buf, size_t size, off_t offset,struct fuse_file_info *fi);
 int ffs_write(const char *path, const char *buf, size_t size, off_t offset,struct fuse_file_info *fi);
 int ffs_utimens(const char *path, struct utimbuf *tv);
 int ffs_truncate(const char* path, off_t size);
 int ffs_unlink(const char *path);
+int ffs_chmod(const char *path, mode_t setPerm);
+int ffs_chown(const char *path, uid_t u, gid_t g);
 
 
 #endif

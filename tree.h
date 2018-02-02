@@ -8,6 +8,7 @@
 #include <time.h>
 #include <stdarg.h>
 
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
@@ -15,10 +16,17 @@
 #include "disk.h"
 
 
+#define DEF_DIR_PERM (0775)
+#define DEF_FILE_PERM (0664)
+
 typedef struct fs_tree_node {
     uint8_t type;                       //type of node
     char *name;                         //name of node
     char *fullname;                     //full path of node
+    
+    uint32_t uid, gid;              // user ID and group IP
+    uint32_t perms;                 // file permissions (supposed to be similar to Ubuntu)
+    uint8_t nlinks;             // number of links to this
     
     struct fs_tree_node *parent;        //link to parent
     struct fs_tree_node **children;      //links to children
@@ -45,7 +53,8 @@ int dfs_dispatch(fs_tree_node *curr, int (*foo)(fs_tree_node *));   // apply a f
 
 
 fs_tree_node *node_exists(const char *path);        //check if node exists
-fs_tree_node *add_fs_tree_node(const char *path, short type);     //add a node to FS tree at path
+fs_tree_node *add_fs_tree_node(const char *path, uint8_t type);     //add a node to FS tree at path
 int remove_fs_tree_node(const char *path);          //remove a node from FS tree
+int copy_nodes(fs_tree_node *from, fs_tree_node *to);       //copy all members from (from) to (to)
 
 #endif

@@ -10,13 +10,16 @@ run: compile
 	./ffs -f /home/$(username)/Desktop/mountpoint
 
 drun: dcompile
-	./ffs -d -f -s /home/$(username)/Desktop/mountpoint
+	./ffs -d -f -s /home/$(username)/Desktop/mountpoint 
+
+bgrun: compile
+	./ffs /home/$(username)/Desktop/mountpoint
 
 compile: checkdir
 	gcc -Wall $(files) $(compileflags) $(opflag) $(neededflag)
 
 dcompile: checkdir
-	gcc -Wall -g $(files) $(compileflags) $(opflag) $(neededflag)	
+	gcc -Wall -g -DERR_FLAG $(files) $(compileflags) $(opflag) $(neededflag)	
 
 checkdir:
 	if [ -d "/home/$(username)/Desktop/mountpoint" ]; then echo "mountpoint exists"; else mkdir /home/$(username)/Desktop/mountpoint; fi

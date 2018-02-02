@@ -7,6 +7,7 @@ fs_tree_node *root;
 // Prints errors and logging info to STDOUT
 // Passes format strings and args to vprintf, basically a wrapper for printf
 static void error_log(char *fmt, ...) {
+#ifdef ERR_FLAG
     va_list args;
     va_start(args, fmt);
     
@@ -15,6 +16,7 @@ static void error_log(char *fmt, ...) {
     printf("\n");
 
     va_end(args);
+#endif
 }
 
 /*
@@ -164,8 +166,8 @@ Create a file at (path) of type specified by (mode)
 If any intermediate directory in (path) doesn't exist, error is thrown
 Returns address of added node
 */
-fs_tree_node *add_fs_tree_node(const char *path, short type) {
-    error_log("%s called!", __func__);
+fs_tree_node *add_fs_tree_node(const char *path, uint8_t type) {
+    error_log("%s called! path = %s \t type=%d", __func__, path, type);
 
     fs_tree_node *curr = root;
     int pathLength = strlen(path), sublen = 0;
@@ -177,7 +179,7 @@ fs_tree_node *add_fs_tree_node(const char *path, short type) {
     temp[i] = 0;
     i += 1;
 
-    if(i == 0) {  //if root's child
+    if(i == 1) {  //if root's child
         error_log("Found to be root's child!");
         strcpy(temp, "/");
     }
@@ -194,6 +196,9 @@ fs_tree_node *add_fs_tree_node(const char *path, short type) {
     error_log("Checking if path : %s : exists", temp);
 
     if((curr = node_exists(temp))) {
+        // FUSE checks for entire path to exist (and makes sure it will exist when this called)
+        // Hence this block will usually be executed
+
         error_log("Path found to exist with %d children!", curr->len);
         fs_tree_node *parent = curr;
 
@@ -215,12 +220,28 @@ fs_tree_node *add_fs_tree_node(const char *path, short type) {
         curr->parent = parent;
     }
 
+    curr->uid = getuid();
+    curr->gid = getgid();
+
     curr->data = NULL;
     curr->data_size = 0;
     curr->block_count = 0;
 
     time(&(curr->st_ctim).tv_sec);
     curr->st_mtim = curr->st_atim = curr->st_ctim;
+
+    switch(type) {
+        case 1:
+            curr->perms = DEF_FILE_PERM;
+            curr->nlinks = 1;
+            break;
+
+        case 2:
+            curr->perms = DEF_DIR_PERM;
+            curr->parent->nlinks += 1;
+            curr->nlinks = 2;
+            break;
+    }
 
     error_log("FS Node added at %p", curr);
     free(temp);
@@ -259,6 +280,32 @@ int remove_fs_tree_node(const char *path) {
 
     for( ; i < --(parent->len) ; i++)                   // shift all children back one position, effectively deleting the node
         parent->children[i] = parent->children[i+1];
+
+    return 0;
+}
+
+/*
+Copies all members from (from) to (to), except link to parent, name and fullname
+Assumes both nodes already exist and are allocated space, but pointer members of (to) are not allocated
+Does not free anything, strictly copy
+Returns 0
+*/
+int copy_nodes(fs_tree_node *from, fs_tree_node *to) {
+    to->type = from->type;                       //type of node
+    //to->name = from->name;                         //name of node
+    //to->fullname = from->fullname;                     //full path of node
+
+    //to->parent = from->parent;        //link to parent
+    to->children = from->children;      //links to children
+    to->len = from->len;                       //number of children
+
+    to->data = from->data;						//data for read and write
+    to->data_size = from->data_size;						//size of data
+    to->block_count = from->block_count;               // number of blocks
+
+    to->st_atim = from->st_atim;            /* time of last access */
+    to->st_mtim = from->st_mtim;            /* time of last modification */
+    to->st_ctim = from->st_ctim;            /* time of last status change */
 
     return 0;
 }
