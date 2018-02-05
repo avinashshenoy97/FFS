@@ -19,6 +19,13 @@
 #define DEF_DIR_PERM (0775)
 #define DEF_FILE_PERM (0664)
 
+// fields = type + name + uid + gid + perms + nlinks + data_size + atim + mtim + ctim + next_block
+// in bits = 8 + (256*8) + 32 + 32 + 32 + 8 + 64 + (16*8) + (16*8) + (16*8) + 64 = 2672 = 334 bytes
+#define NODE_SIZE (334)
+
+#define SUPERBLOCKS 1   // number of blocks designated to be part of superblock
+
+
 typedef struct fs_tree_node {
     uint8_t type;                       //type of node
     char *name;                         //name of node

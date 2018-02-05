@@ -31,4 +31,11 @@ void *reallocate(fs_tree_node *node, uint64_t n);         // reallocate orig to 
 void *setBlocks(void *ptr, uint64_t n, int val);              // set (n) bytes from ptr, to val
 void deallocate(fs_tree_node *node);             // do what free does
 
+uint64_t constructBlock(fs_tree_node *noden void **ret)               //construct blocks of data to be used by writeBlock
+
+int openDisk(char *filename, int nbytes);
+int readBlock(int disk, int blocknr, void *block);
+int writeBlock(int disk, int blocknr, void *block);
+
+
 #endif
