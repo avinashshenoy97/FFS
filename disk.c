@@ -1,5 +1,5 @@
 #include "disk.h"
-
+#include<unistd.h>
 
 // Error logging for THIS MODULE, helps differentiate from logging of other modules
 // Prints errors and logging info to STDOUT
@@ -166,3 +166,32 @@ uint64_t constructBlock(fs_tree_node *noden void **ret) {
 
     return blocks_needed;
 }
+
+int openDisk(char *filename, int nbytes){
+    error_log("%s called on path : %s", __func__);
+    
+    int fd = fopen("file.txt",O_CREAT|O_RDWR,0666);
+
+    return fd;
+}
+
+int readBlock(int disk, int blocknr, void *block){
+
+if(blocknr < MAX_BLOCK_NO){
+    int ret = read(disk, &block, blocknr*4096);
+    }
+else{
+    return -EPERM;
+    }
+}
+
+int writeBlock(int disk, int blocknr, void *block){
+
+if(blocknr < MAX_BLOCK_NO){
+    int ret = write(disk, &block, blocknr*4096);
+    }
+else{
+    return -EPERM;
+    }
+}
+
