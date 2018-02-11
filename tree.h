@@ -14,21 +14,21 @@
 #include <errno.h>
 
 #include "disk.h"
-
+#include "bitmap.h"
 
 #define DEF_DIR_PERM (0775)
 #define DEF_FILE_PERM (0664)
 
-// fields = type + name + uid + gid + perms + nlinks + data_size + atim + mtim + ctim + next_block
-// in bits = 8 + (256*8) + 32 + 32 + 32 + 8 + 64 + (16*8) + (16*8) + (16*8) + 64 = 2672 = 334 bytes
-#define NODE_SIZE (334)
+// fields = type + name + len + uid + gid + perms + nlinks + data_size + atim + mtim + ctim < + data + > + inode_no + next_block
+// in bits = 8 + (256*8) + 32 + 32 + 32 + 32 + 8 + 64 + (16*8) + (16*8) + (16*8) + 64 + 64 = 2768 = 346 bytes
+#define NODE_SIZE (346)
 
 #define SUPERBLOCKS 1   // number of blocks designated to be part of superblock
 
 
 typedef struct fs_tree_node {
     uint8_t type;                       //type of node
-    char *name;                         //name of node
+    char name[256];                         //name of node
     char *fullname;                     //full path of node
     
     uint32_t uid, gid;              // user ID and group IP
@@ -38,10 +38,12 @@ typedef struct fs_tree_node {
     struct fs_tree_node *parent;        //link to parent
     struct fs_tree_node **children;      //links to children
     uint32_t len;                       //number of children
+    uint64_t *ch_inodes;            // inode_no of children
 
     uint8_t *data;						//data for read and write
     uint64_t data_size;						//size of data
     uint64_t block_count;               // number of blocks
+    uint64_t inode_no;                  // the inode number, i.e, the block containing first part of data
 
     struct timespec st_atim;            /* time of last access */
     struct timespec st_mtim;            /* time of last modification */
@@ -53,6 +55,8 @@ types:
     1 = file
     2 = directory
 */
+
+extern int diskfd;
 
 int destroy_node(fs_tree_node *node);        //free all parts a node from the FS tree
 int init_fs();              //initialize FS tree with root

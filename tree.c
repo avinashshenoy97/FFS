@@ -42,6 +42,10 @@ int destroy_node(fs_tree_node *node) {
     return 0;
 }
 
+void output_node(fs_tree_node node) {
+    error_log("Type : %d\nName : %s\nfullname : %s\nuid : %d\ngid : %d\nperms : %d\nnlinks : %d\nparent : %p\nchildren : %p\nlen : %u\ndata : %p\ndata_size : %lu\nblock_count : %lu\ninode_no : %lu\nst_atim : %s\nst_mtim : %s\nst_ctim : %s\n", node.type, node.name, node.fullname, node.uid, node.gid, node.perms, node.nlinks, node.parent, node.children, node.len, node.data, node.data_size, node.block_count, node.inode_no, ctime(&node.st_atim), ctime(&node.st_mtim), ctime(&node.st_ctim));
+}
+
 /*
 Initialize the tree structure that stores the file system's tree
 */
@@ -55,12 +59,14 @@ int init_fs() {
     error_log("Root node at %p", root);
 
     root->type = 2;
-    root->name = NULL;
+    //root->name = NULL;
     root->fullname = (char *)malloc(sizeof(char) * 2);
     strcpy(root->fullname, "/");
+    strcpy(root->name, "/");
 
     root->children = NULL;
     root->len = 0;
+    root->nlinks = 2;
     root->parent = NULL;
     root->data = NULL;
     root->data_size = 0;
@@ -87,6 +93,22 @@ int dfs_dispatch(fs_tree_node *curr, int (*foo)(fs_tree_node *)) {
     // apply foo to it
 
     foo(curr);
+    return 0;
+}
+
+int bfs_dispatch(fs_tree_node *curr, int (*foo)(fs_tree_node *)) {
+    error_log("%s called on node %s", __func__, curr->fullname);
+
+    int i = 0;
+    if(curr->len > 0 && curr->type == 2) {         // if curr has children and is directory
+        error_log("Has %d children, curr->children is %p", curr->len, curr->children);
+        for(i = 0 ; i < curr->len ; i++)        // call foo on each child
+            foo(curr->children[i]);
+
+        for(i = 0 ; i < curr->len ; i++)        // call bsf_dispatch on each child
+            bfs_dispatch(curr->children[i], foo);
+    }
+
     return 0;
 }
 
@@ -142,7 +164,7 @@ fs_tree_node *node_exists(const char *path) {
                     break;
                 }
             }
-
+            error_log("Done searching");
             free(sub);
             if(!found) {
                 error_log("%s returning with 0 not found!", __func__);
@@ -207,7 +229,7 @@ fs_tree_node *add_fs_tree_node(const char *path, uint8_t type) {
         curr->children[curr->len - 1] = (fs_tree_node *)malloc(sizeof(fs_tree_node));
         curr = curr->children[curr->len - 1];
         
-        curr->name = (char *)malloc(sizeof(char) * sublen);     //add name to FS node
+        //curr->name = (char *)malloc(sizeof(char) * sublen);     //add name to FS node
         strcpy(curr->name, fileName);
 
         curr->fullname = (char *)malloc(sizeof(char) * (pathLength + 1));       //add full name to FS node
@@ -218,6 +240,16 @@ fs_tree_node *add_fs_tree_node(const char *path, uint8_t type) {
         curr->type = type;
         curr->len = 0;
         curr->parent = parent;
+        curr->inode_no = findFirstFreeBlock();
+
+        void *temp = realloc(parent->ch_inodes, parent->len * sizeof(parent->inode_no));
+        if(!temp) {
+            error_log("Error reallocing inode children array of parent");
+            return -ENOMEM;
+        }
+        parent->ch_inodes = temp;
+        (parent->ch_inodes)[parent->len - 1] = curr->inode_no;
+        error_log("(parent->ch_inodes)[parent->len - 1] = %lu", (parent->ch_inodes)[parent->len - 1]);
     }
 
     curr->uid = getuid();
@@ -245,6 +277,26 @@ fs_tree_node *add_fs_tree_node(const char *path, uint8_t type) {
 
     error_log("FS Node added at %p", curr);
     free(temp);
+    free(fileName);
+
+    
+    error_log("Going to write to disk");
+    void *buf;
+    error_log("buf = %p", buf);
+    int blocks_to_write = constructBlock(curr, &buf);
+    error_log("Constructed block, bug = %p", buf);
+    diskWriter(buf, blocks_to_write, curr->inode_no);
+    error_log("Wrote to disk buf = %p", buf);
+    saveBitMap();
+
+    //free(buf); // throws error "invalid pointer" = reason unkown
+    
+    error_log("Starting on parent");
+    blocks_to_write = constructBlock(curr->parent, &buf);
+    error_log("Constructed parent block");
+    diskWriter(buf, blocks_to_write, curr->parent->inode_no);
+    error_log("Rewrote parent to disk");
+
     return curr;
 }
 
@@ -291,6 +343,7 @@ Does not free anything, strictly copy
 Returns 0
 */
 int copy_nodes(fs_tree_node *from, fs_tree_node *to) {
+    error_log("%s called", __func__);
     to->type = from->type;                       //type of node
     //to->name = from->name;                         //name of node
     //to->fullname = from->fullname;                     //full path of node
@@ -307,5 +360,40 @@ int copy_nodes(fs_tree_node *from, fs_tree_node *to) {
     to->st_mtim = from->st_mtim;            /* time of last modification */
     to->st_ctim = from->st_ctim;            /* time of last status change */
 
+    return 0;
+}
+
+int load_fs(int diskfd) {
+    error_log("%s called with diskfd %d", __func__, diskfd);
+    uint64_t size;
+    read(diskfd, &size, sizeof(size));
+    error_log("Size of disk : %lu", size);
+
+    loadBitMap(diskfd);
+    print_bitmap();
+
+    uint64_t toRead = (bmap_size + SUPERBLOCKS);
+    error_log("toRead = %d", toRead);
+
+    // Load root node
+    root = diskReader(toRead);
+    error_log("Root node at %p", root);
+    error_log("With children %u", root->len);
+    output_node(*root);
+
+    fill_fs_tree(root);
+
+    error_log("Done loading");
+    return 0;
+}
+
+void fill_fs_tree(fs_tree_node *root) {
+    error_log("%s called with root %p with name %s", __func__, root, root->name);
+    uint64_t i;
+    root->children = (fs_tree_node **)malloc(sizeof(fs_tree_node *) * root->len);
+
+    for(i = 0 ; i < root->len ; i++) {
+        root->children[i] = diskReader(root->ch_inodes[i]);
+    }
     return 0;
 }
