@@ -15,9 +15,10 @@
 
 
 // macros for backward compatibility
-
+#define openDisk(x) openDisk(x, 0)
 
 char *path_to_mount;
+int diskfd;
 
 static struct fuse_operations ffs_operations = {
     .getattr    = ffs_getattr,
@@ -36,7 +37,7 @@ static struct fuse_operations ffs_operations = {
 	.read	    = ffs_read,
 	.write	    = ffs_write,
 	//.statfs	    = ffs_statfs,
-	//.flush	    = ffs_flush,
+	.flush	    = ffs_flush,
 	//.release	= ffs_release,
 	//.fsync	    = ffs_fsync,
 	//.setxattr	= ffs_setxattr,
@@ -65,8 +66,8 @@ static struct fuse_operations ffs_operations = {
 };
 
 int main(int argc, char **argv) {
-    //init_fs(argv[argc-1]);
-    //printf("Full path to mountpoint :\n%s\n\n", argv[argc-1]);
-    init_fs();
-    return fuse_main(argc, argv, &ffs_operations);
+    diskfd = openDisk(argv[argc-1]);
+    //init_fs();
+	load_fs(diskfd);
+    return fuse_main(argc-1, argv, &ffs_operations);
 }

@@ -40,6 +40,7 @@ int ffs_getattr(const char *path, struct stat *s) {
             break;
 
         default:
+            error_log("Type not supported : %d", curr->type);
             return -ENOTSUP;
     }
     
@@ -143,11 +144,14 @@ int ffs_open(const char *path, struct fuse_file_info *fi)
 
 int ffs_read(const char *path, char *buf, size_t size, off_t offset,struct fuse_file_info *fi)
 {   
-    error_log("%s called on path : %s", __func__, path);
+    error_log("%s called on path : %s \t size = %lu\t offset = %ld", __func__, path, size, offset);
 
     fs_tree_node *curr = NULL;
     size_t len;
     curr = node_exists(path);
+    dataDiskReader(curr);
+    error_log("Data disk read %4s", curr->data);
+
     len = curr->data_size;
 
     error_log("curr found at %p with data %d", curr, len);
@@ -155,6 +159,8 @@ int ffs_read(const char *path, char *buf, size_t size, off_t offset,struct fuse_
     if (offset < len) {
         if (offset + size > len)
             size = len - offset;
+        
+        error_log("if offset < len\t %ld %d %ld", size, len, offset);
         memcpy(buf, curr->data + offset, size);
     } 
     else {
@@ -485,6 +491,19 @@ int ffs_chown(const char *path, uid_t u, gid_t g) {
 
     if(g != -1)
         curr->gid = g;
+
+    return 0;
+}
+
+int ffs_flush(const  char *path, struct fuse_file_info *fi) {
+    error_log("%s called on path : %s", __func__, path);
+
+    fs_tree_node *node = node_exists(path);
+    void *buf;
+    uint64_t blocks = constructBlock(node, &buf);
+    diskWriter(buf, blocks, node->inode_no);
+    error_log("Wrote file!");
+    //free(buf);    // free(): invalid pointer = error thrown, unknown reason
 
     return 0;
 }
