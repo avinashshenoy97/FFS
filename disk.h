@@ -22,6 +22,8 @@
 
 typedef struct fs_tree_node fs_tree_node;
 
+extern int diskfd;
+
 #define BLOCK_SIZE 4096                         // block size 4 KB
 #define MAX_FILE_SIZE 18446744073709551616    // bytes, largest possible value in unsigned 64 bit int; 13.6 EB (Exabytes)
 #define MAX_BLOCK_NO 4503599627370496           //MAX_FILE_SIZE / (4*1024)
@@ -31,11 +33,11 @@ void *reallocate(fs_tree_node *node, uint64_t n);         // reallocate orig to 
 void *setBlocks(void *ptr, uint64_t n, int val);              // set (n) bytes from ptr, to val
 void deallocate(fs_tree_node *node);             // do what free does
 
-uint64_t constructBlock(fs_tree_node *noden void **ret)               //construct blocks of data to be used by writeBlock
+uint64_t constructBlock(fs_tree_node *node, void **ret);               //construct blocks of data to be used by writeBlock
 
 int openDisk(char *filename, int nbytes);
-int readBlock(int disk, int blocknr, void *block);
-int writeBlock(int disk, int blocknr, void *block);
+int readBlock(uint64_t blocknr, void *block);
+int writeBlock(uint64_t blocknr, void *block);
 
 
 #endif
