@@ -27,18 +27,26 @@ return 0 if all okay, else return -1
 int destroy_node(fs_tree_node *node) {
     error_log("%s called on %p", __func__, node);
 
-    free(node->name);
-    free(node->fullname);
+    if(!node->name)
+        free(node->name);
+    error_log("Erased name");
+    if(!node->fullname)
+        free(node->fullname);
+    error_log("Erased fullname");
     
     if(node->children != NULL)
         free(node->children);
+    error_log("Erased children");
     
     node->parent = NULL;
+    error_log("Erased parent");
 
     if(node->data != NULL)
         deallocate(node);
+    error_log("Erased data");
     
     free(node);
+    error_log("Returning");
     return 0;
 }
 
@@ -79,7 +87,7 @@ int init_fs() {
 Uses Depth-First-Search to recursively apply the function (foo) to each node under (curr) and to (curr) itself.
 */
 int dfs_dispatch(fs_tree_node *curr, int (*foo)(fs_tree_node *)) {
-    error_log("%s called on node %s", __func__, curr->fullname);
+    error_log("%s called on node %s, len = %u, type = %d", __func__, curr->name, curr->len, curr->type);
 
     int i = 0;
     if(curr->len > 0 && curr->type == 2) {         // if curr has children and is directory
@@ -315,7 +323,7 @@ int remove_fs_tree_node(const char *path) {
     // OS checks if path exists using getattr, no need to check explicitly
     // using node_exists to get FS tree node
 
-    int i;
+    uint64_t i, j;
     fs_tree_node *toDelete = node_exists(path);
     fs_tree_node *parent = toDelete->parent;
 
@@ -330,9 +338,37 @@ int remove_fs_tree_node(const char *path) {
         }
     }
 
-    for( ; i < --(parent->len) ; i++)                   // shift all children back one position, effectively deleting the node
+    for( ; i < (parent->len - 1) ; i++) {                   // shift all children back one position, effectively deleting the node
         parent->children[i] = parent->children[i+1];
+        parent->children = realloc(parent->children, sizeof(fs_tree_node *) * (parent->len - 1));
+    }
+    
+    void *buf = malloc(BLOCK_SIZE);
+    uint64_t next = toDelete->inode_no;
+    while(next) {
+        clearBitofMap(next);
+        for(i = 0 ; i < parent->len ; i++) {
+            if(parent->ch_inodes[i] == next) {
+                --(parent->len);
+                for(j = i ; j < parent->len ; j++)
+                    parent->ch_inodes[j] = parent->ch_inodes[j+1];
+                parent->ch_inodes = realloc(parent->ch_inodes, sizeof(parent->inode_no) * (parent->len));
+                break;
+            }
+        }
+        readBlock(next, buf);
+        memcpy(&next, buf + BLOCK_SIZE - sizeof(next), sizeof(next));
+        error_log("NEXT = %lu", next);
+    }
+    error_log("Done");
+    free(buf);
 
+    error_log("Rewriting parent now");
+    void *buf2;
+    uint64_t ret = constructBlock(parent, &buf2);
+    diskWriter(buf2, ret, parent->inode_no);
+
+    error_log("Returning with 0");
     return 0;
 }
 
@@ -394,6 +430,7 @@ void fill_fs_tree(fs_tree_node *root) {
 
     for(i = 0 ; i < root->len ; i++) {
         root->children[i] = diskReader(root->ch_inodes[i]);
+        root->children[i]->parent = root;
     }
     return 0;
 }

@@ -101,6 +101,7 @@ int setBitofMap(uint64_t bitno) {
     int val = (int)pow(2, bit_index);
     bitmap[index] = bitmap[index] | (val);
 
+    saveBitMap();
     return 0;
 }
 
@@ -114,10 +115,11 @@ int clearBitofMap(uint64_t bitno) {
     int val = (int)pow(2, bit_index);
     bitmap[index] = bitmap[index] & ~(val);
 
+    saveBitMap();
     return 0;
 }
 
-void print_bitmap(){
+void print_bitmap() {
     int index = 0, bit_index = 0;
     for(index = 0; index < bmap_size; index++){
         for (bit_index = 0; bit_index < 8; bit_index++) {
