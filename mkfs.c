@@ -23,6 +23,22 @@
 
 int diskfd;
 
+// Error logging for THIS MODULE, helps differentiate from logging of other modules
+// Prints errors and logging info to STDOUT
+// Passes format strings and args to vprintf, basically a wrapper for printf
+static void error_log(char *fmt, ...) {
+#ifdef ERR_FLAG
+    va_list args;
+    va_start(args, fmt);
+    
+    printf("DISK : ");
+    vprintf(fmt, args);
+    printf("\n");
+
+    va_end(args);
+#endif
+}
+
 int main(int argc, char **argv){
 	init_fs();		// Creates root directory
 
@@ -34,12 +50,12 @@ int main(int argc, char **argv){
 	for(i = 0 ; i < size ; i++) {
 		write(fd, &to_write, sizeof(to_write));
 	}
-	printf("%s\n", "Done creating!");
+	printf("%s\n", "Done creating! Writing superblock and metadata!");
 
 	// Write size of disk to superblock
 	lseek(fd, 0, SEEK_SET);
 	write(fd, &size, sizeof(size));
-	printf("Wrote size %llu to file\n", size);
+	error_log("Wrote size %lu to file\n", size);
 
 	// Calculate size of BITMAP in bits
 	uint64_t bsize = size / BLOCK_SIZE;
@@ -48,20 +64,20 @@ int main(int argc, char **argv){
 	// Size of BITMAP in blocks
 	bsize /= BLOCK_SIZE;
 	bsize++;
-	printf("bsize %llu to file\n", bsize);
 	bmap_size = bsize;
+	error_log("bsize %lu to file\n", bsize);
 
 	// Write number of blocks taken by bitmap in superblock
 	lseek(fd, sizeof(size), SEEK_SET);
 	write(fd, &bsize, sizeof(bsize));
-	printf("Wrote bsize %llu to file\n", bsize);
+	error_log("Wrote bsize %lu to file\n", bsize);
 
 	// Blocks needed by BITMAP, to be marked as 1 in bitmap
 	uint64_t bmap_blocks = bsize / BLOCK_SIZE;
 	bmap_blocks++;
 
 	// First (bmap_blocks) need to marked with 1 in BITMAP
-	printf("Marking first %d blocks\n", bmap_blocks + SUPERBLOCKS);
+	error_log("Marking first %lu blocks\n", bmap_blocks + SUPERBLOCKS);
 
 	bitmap = calloc(bsize, BLOCK_SIZE);
 	if(!bitmap) {
@@ -71,36 +87,33 @@ int main(int argc, char **argv){
 	for(i = 0 ; i < bmap_blocks + SUPERBLOCKS ; i++)
 		setBitofMap(i);
 
-	printf("Done marking!\n");
+	error_log("Done marking!\n");
 
 	void *buf;
 	uint64_t firstFreeBlock = findFirstFreeBlock();
-	printf("First free block = %d\n", firstFreeBlock);
-	printf("Constructing block for root node!\n");
+	error_log("First free block = %lu\n", firstFreeBlock);
+	error_log("Constructing block for root node!\n");
 	
 	fs_tree_node *root = node_exists("/");
 	root->inode_no = firstFreeBlock;
-	constructBlock(root, &buf);		// Create block for root node
-
-	output_node(*root);
 	
-	printf("FIRST free block = %d\n", firstFreeBlock);
-	//memcpy(buf + (BLOCK_SIZE - 8*2), &firstFreeBlock, sizeof(firstFreeBlock)); // set the inode field
-	printf("FIRST free block = %d\n", firstFreeBlock);
+	constructBlock(root, &buf);		// Create block for root node
+	error_log("Done constructing block for root node!\n");
+	output_node(*root);
 
-	printf("Done constructing block for root node!\n");
 	writeBlock(firstFreeBlock, buf);
-	printf("FIRST free block = %d\n", firstFreeBlock);
-
-	printf("Done writing block for root node!\n");
+	error_log("Done writing block for root node!\n");
+	
 	setBitofMap(firstFreeBlock);
-	printf("Writing bitmap to file\n");
+	error_log("Writing bitmap to file\n");
 	for(i = 0 ; i < bmap_blocks ; i++) {
 		writeBlock(SUPERBLOCKS + i, bitmap + (i * BLOCK_SIZE));
 	}
 	
-	printf("Freeing, closing, end!\n");
+	error_log("Freeing, closing, end!\n");
 	free(buf);
+	free(bitmap);
 	close(fd);
+	printf("Done!\n");
 	return 0;
 }

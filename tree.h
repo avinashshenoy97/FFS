@@ -58,14 +58,66 @@ types:
 
 extern int diskfd;
 
-int destroy_node(fs_tree_node *node);        //free all parts a node from the FS tree
-int init_fs();              //initialize FS tree with root
-int dfs_dispatch(fs_tree_node *curr, int (*foo)(fs_tree_node *));   // apply a function to a node and its children recursively
+/*
+Free all dynamically allocated members of node and free node itself too.
+Return 0 if all okay, else return -1.
+*/
+int destroy_node(fs_tree_node *node);
 
+/*
+Ourput all fields of node using `error_log`. Output will not be displayed if FFS was compiled or run without `d` prefix as in `make dcompile` or `make drun`.
+*/
+void output_node(fs_tree_node node);
 
-fs_tree_node *node_exists(const char *path);        //check if node exists
-fs_tree_node *add_fs_tree_node(const char *path, uint8_t type);     //add a node to FS tree at path
-int remove_fs_tree_node(const char *path);          //remove a node from FS tree
-int copy_nodes(fs_tree_node *from, fs_tree_node *to);       //copy all members from (from) to (to)
+/*
+Initialize the tree structure that stores the file system's tree. Creates the root node.
+*/
+int init_fs();
+
+/*
+Uses Depth-First-Search to recursively apply the function (foo) to each node under (curr) and to (curr) itself.
+*/
+int dfs_dispatch(fs_tree_node *curr, int (*foo)(fs_tree_node *));
+
+/*
+Uses Breadth-First-Search to recursively apply the function (foo) to each node under (curr).
+*/
+int bfs_dispatch(fs_tree_node *curr, int (*foo)(fs_tree_node *));
+
+/*
+Returns address of node if node exists in FS tree, else 0.
+*/
+fs_tree_node *node_exists(const char *path);
+
+/*
+Create a file at `path` of type specified by `mode`. If any intermediate directory in `path` doesn't exist, error is thrown automatically.
+Returns address of added node in FS tree.
+*/
+fs_tree_node *add_fs_tree_node(const char *path, uint8_t type);
+
+/*
+Remove node at `path`.
+If any intermediate directory in `path` doesn't exist, error is thrown.
+*/
+int remove_fs_tree_node(const char *path);
+
+/*
+Copies all members from `from` to `to`, except link to parent, name and fullname.
+Assumes both nodes already exist and are allocated space, but pointer members of `to` are not allocated.
+Does not free anything, strictly copies and returns.
+Returns 0.
+*/
+int copy_nodes(fs_tree_node *from, fs_tree_node *to);
+
+/*
+Load an already initialised FS from a file/persistent storage opened using `openDisk`.
+*/
+int load_fs(int diskfd);
+
+/*
+Rebuilds the FS tree with all the metadata of all files/folders stored in persistent storage accessed via `diskfd`.
+*/
+void fill_fs_tree(fs_tree_node *root);
+
 
 #endif

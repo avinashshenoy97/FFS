@@ -24,8 +24,14 @@ dcompile: checkdir
 checkdir:
 	if [ -d "/home/$(username)/Desktop/mountpoint" ]; then echo "mountpoint exists"; else mkdir /home/$(username)/Desktop/mountpoint; fi
 
+dmkfs: mkfs_dcompile
+	./mkfs /home/$(username)/Desktop/file.txt
+
+mkfs_dcompile: 
+	gcc -Wall -g -DERR_FLAG $(files) mkfs.c $(compileflags) -o mkfs $(neededflag)
+
 mkfs: mkfs_compile
 	./mkfs /home/$(username)/Desktop/file.txt
 
 mkfs_compile: 
-	gcc -Wall -g -DERR_FLAG $(files) mkfs.c $(compileflags) -o mkfs $(neededflag)
+	gcc -Wall $(files) mkfs.c $(compileflags) -o mkfs $(neededflag)

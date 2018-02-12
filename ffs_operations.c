@@ -19,6 +19,7 @@ static void error_log(char *fmt, ...) {
 #endif
 }
 
+
 int ffs_getattr(const char *path, struct stat *s) {
     error_log("%s called on path : %s", __func__, path);
 
@@ -58,22 +59,32 @@ int ffs_getattr(const char *path, struct stat *s) {
     return 0;
 }
 
+
 int ffs_mknod(const char *path, mode_t m, dev_t d) {
     error_log("%s called on path : %s", __func__, path);
 
     error_log("Add FS tree node at path : %s", path);
-    add_fs_tree_node(path, 1);
+    long int ret = (uint64_t)add_fs_tree_node(path, 1);
+    if(ret < 0) {
+        return (int)ret;
+    }
 
     return 0;
 }
+
 
 int ffs_mkdir(const char *path, mode_t m) {
     error_log("%s called on path : %s", __func__, path);
 
     error_log("Add FS tree node at path : %s", path);
-    add_fs_tree_node(path, 2);
+    long int ret = (uint64_t)add_fs_tree_node(path, 2);
+    if(ret < 0) {
+        return (int)ret;
+    }
+
     return 0;
 }
+
 
 int ffs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi) {
     error_log("%s called on path : %s", __func__, path);
@@ -102,6 +113,7 @@ int ffs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, off_t of
     return 0;
 }
 
+
 int ffs_rmdir(const char *path) {
     error_log("%s called on path : %s", __func__, path);
     // OS checks if path exists using getattr, no need to check explicitly
@@ -109,6 +121,7 @@ int ffs_rmdir(const char *path) {
 
     return remove_fs_tree_node(path);
 }
+
 
 int ffs_open(const char *path, struct fuse_file_info *fi)
 {   
@@ -142,6 +155,7 @@ int ffs_open(const char *path, struct fuse_file_info *fi)
     return -EACCES;
 }
 
+
 int ffs_read(const char *path, char *buf, size_t size, off_t offset,struct fuse_file_info *fi)
 {   
     error_log("%s called on path : %s \t size = %lu\t offset = %ld", __func__, path, size, offset);
@@ -170,6 +184,7 @@ int ffs_read(const char *path, char *buf, size_t size, off_t offset,struct fuse_
 
     return size;
 }
+
 
 int ffs_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi)
 {   
@@ -231,6 +246,7 @@ int ffs_utimens(const char *path, struct utimbuf *tv) {
 
     return 0;
 }
+
 
 int ffs_truncate(const char* path, off_t size)
 {
@@ -444,6 +460,7 @@ int ffs_rename(const char *from, const char *to) {
     return 0;
 }
 
+
 int ffs_chmod(const char *path, mode_t setPerm) {
     error_log("%s called on path : %s ; to set : %d", __func__, path, setPerm);
 
@@ -467,6 +484,7 @@ int ffs_chmod(const char *path, mode_t setPerm) {
 
     return 0;
 }
+
 
 int ffs_chown(const char *path, uid_t u, gid_t g) {
     error_log("%s called on path : %s ; to set : u = %d\t g = %d", __func__, path, u, g);
@@ -494,6 +512,7 @@ int ffs_chown(const char *path, uid_t u, gid_t g) {
 
     return 0;
 }
+
 
 int ffs_flush(const  char *path, struct fuse_file_info *fi) {
     error_log("%s called on path : %s", __func__, path);

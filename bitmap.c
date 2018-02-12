@@ -120,6 +120,7 @@ int clearBitofMap(uint64_t bitno) {
 }
 
 void print_bitmap() {
+#ifdef ERR_FLAG
     int index = 0, bit_index = 0;
     for(index = 0; index < bmap_size; index++){
         for (bit_index = 0; bit_index < 8; bit_index++) {
@@ -128,4 +129,6 @@ void print_bitmap() {
         printf(" ");
     }
     printf("\n");
+    ;
+#endif
 }

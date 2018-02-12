@@ -19,11 +19,7 @@ static void error_log(char *fmt, ...) {
 #endif
 }
 
-/*
-Free all dynamically allocated members of node
-Free node itself too
-return 0 if all okay, else return -1
-*/
+
 int destroy_node(fs_tree_node *node) {
     error_log("%s called on %p", __func__, node);
 
@@ -50,13 +46,12 @@ int destroy_node(fs_tree_node *node) {
     return 0;
 }
 
+
 void output_node(fs_tree_node node) {
-    error_log("Type : %d\nName : %s\nfullname : %s\nuid : %d\ngid : %d\nperms : %d\nnlinks : %d\nparent : %p\nchildren : %p\nlen : %u\ndata : %p\ndata_size : %lu\nblock_count : %lu\ninode_no : %lu\nst_atim : %s\nst_mtim : %s\nst_ctim : %s\n", node.type, node.name, node.fullname, node.uid, node.gid, node.perms, node.nlinks, node.parent, node.children, node.len, node.data, node.data_size, node.block_count, node.inode_no, ctime(&node.st_atim), ctime(&node.st_mtim), ctime(&node.st_ctim));
+    error_log("Type : %d\nName : %s\nfullname : %s\nuid : %d\ngid : %d\nperms : %d\nnlinks : %d\nparent : %p\nchildren : %p\nlen : %u\ndata : %p\ndata_size : %lu\nblock_count : %lu\ninode_no : %lu\nst_atim : %s\nst_mtim : %s\nst_ctim : %s\n", node.type, node.name, node.fullname, node.uid, node.gid, node.perms, node.nlinks, node.parent, node.children, node.len, node.data, node.data_size, node.block_count, node.inode_no, ctime(&node.st_atim.tv_sec), ctime(&node.st_mtim.tv_sec), ctime(&node.st_ctim.tv_sec));
 }
 
-/*
-Initialize the tree structure that stores the file system's tree
-*/
+
 int init_fs() {
     error_log("%s called", __func__);
     //path_to_mount = (char *)malloc(sizeof(char) * (strlen(mountPoint) + 1));
@@ -83,9 +78,7 @@ int init_fs() {
     return 0;
 }
 
-/*
-Uses Depth-First-Search to recursively apply the function (foo) to each node under (curr) and to (curr) itself.
-*/
+
 int dfs_dispatch(fs_tree_node *curr, int (*foo)(fs_tree_node *)) {
     error_log("%s called on node %s, len = %u, type = %d", __func__, curr->name, curr->len, curr->type);
 
@@ -104,6 +97,7 @@ int dfs_dispatch(fs_tree_node *curr, int (*foo)(fs_tree_node *)) {
     return 0;
 }
 
+
 int bfs_dispatch(fs_tree_node *curr, int (*foo)(fs_tree_node *)) {
     error_log("%s called on node %s", __func__, curr->fullname);
 
@@ -120,9 +114,7 @@ int bfs_dispatch(fs_tree_node *curr, int (*foo)(fs_tree_node *)) {
     return 0;
 }
 
-/*
-Returns address of node if node exists in FS tree, else 0.
-*/
+
 fs_tree_node *node_exists(const char *path) {
     error_log("%s called!", __func__);
     error_log("Checking if : %s : exists", path);
@@ -191,11 +183,7 @@ fs_tree_node *node_exists(const char *path) {
     return curr;
 }
 
-/*
-Create a file at (path) of type specified by (mode)
-If any intermediate directory in (path) doesn't exist, error is thrown
-Returns address of added node
-*/
+
 fs_tree_node *add_fs_tree_node(const char *path, uint8_t type) {
     error_log("%s called! path = %s \t type=%d", __func__, path, type);
 
@@ -232,6 +220,12 @@ fs_tree_node *add_fs_tree_node(const char *path, uint8_t type) {
         error_log("Path found to exist with %d children!", curr->len);
         fs_tree_node *parent = curr;
 
+        curr->inode_no = findFirstFreeBlock();
+        if(curr->inode_no == -1) {
+            error_log("Returning with error ENOSPC");
+            return (fs_tree_node *)(-ENOSPC);
+        }
+
         curr->len += 1;
         curr->children = realloc(curr->children, sizeof(fs_tree_node *) * curr->len);
         curr->children[curr->len - 1] = (fs_tree_node *)malloc(sizeof(fs_tree_node));
@@ -248,12 +242,11 @@ fs_tree_node *add_fs_tree_node(const char *path, uint8_t type) {
         curr->type = type;
         curr->len = 0;
         curr->parent = parent;
-        curr->inode_no = findFirstFreeBlock();
 
         void *temp = realloc(parent->ch_inodes, parent->len * sizeof(parent->inode_no));
         if(!temp) {
             error_log("Error reallocing inode children array of parent");
-            return -ENOMEM;
+            return (fs_tree_node *)(-ENOMEM);
         }
         parent->ch_inodes = temp;
         (parent->ch_inodes)[parent->len - 1] = curr->inode_no;
@@ -308,10 +301,7 @@ fs_tree_node *add_fs_tree_node(const char *path, uint8_t type) {
     return curr;
 }
 
-/*
-Remove node at (path)
-If any intermediate directory in (path) doesn't exist, error is thrown
-*/
+
 int remove_fs_tree_node(const char *path) {
     error_log("%s called with path %s", __func__, path);
 
@@ -372,12 +362,7 @@ int remove_fs_tree_node(const char *path) {
     return 0;
 }
 
-/*
-Copies all members from (from) to (to), except link to parent, name and fullname
-Assumes both nodes already exist and are allocated space, but pointer members of (to) are not allocated
-Does not free anything, strictly copy
-Returns 0
-*/
+
 int copy_nodes(fs_tree_node *from, fs_tree_node *to) {
     error_log("%s called", __func__);
     to->type = from->type;                       //type of node
@@ -398,6 +383,7 @@ int copy_nodes(fs_tree_node *from, fs_tree_node *to) {
 
     return 0;
 }
+
 
 int load_fs(int diskfd) {
     error_log("%s called with diskfd %d", __func__, diskfd);
@@ -423,6 +409,7 @@ int load_fs(int diskfd) {
     return 0;
 }
 
+
 void fill_fs_tree(fs_tree_node *root) {
     error_log("%s called with root %p with name %s", __func__, root, root->name);
     uint64_t i;
@@ -432,5 +419,10 @@ void fill_fs_tree(fs_tree_node *root) {
         root->children[i] = diskReader(root->ch_inodes[i]);
         root->children[i]->parent = root;
     }
-    return 0;
+
+    for(i = 0 ; i < root->len ; i++) {
+        fill_fs_tree(root->children[i]);
+    }
+    
+    return;
 }

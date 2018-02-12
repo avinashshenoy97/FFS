@@ -17,10 +17,7 @@ static void error_log(char *fmt, ...) {
 #endif
 }
 
-/*
-Allocate as many blocks as needed to store (n) bytes in data field of node
-Return pointer or block number to begin writing (depends on in-memory or in-disk)
-*/
+
 void *allocate(fs_tree_node *node, uint64_t n) {
     error_log("%s called on %p for %ld bytes", __func__, node, n);
 
@@ -38,10 +35,7 @@ void *allocate(fs_tree_node *node, uint64_t n) {
     return (void *)(node->data);
 }
 
-/*
-Like realloc, reallocate data to have blocks needed to store (n) bytes
-Return pointer or block number
-*/
+
 void *reallocate(fs_tree_node *node, uint64_t n) {
     error_log("%s called on %p for %ld bytes", __func__, node, n);
 
@@ -66,9 +60,7 @@ void *reallocate(fs_tree_node *node, uint64_t n) {
     return node->data;
 }
 
-/*
-Like memset for blocks
-*/
+
 void *setBlocks(void *ptr, uint64_t n, int val) {
     error_log("%s called on %p for %ld bytes to set %d", __func__, ptr, n, val);
 
@@ -77,9 +69,7 @@ void *setBlocks(void *ptr, uint64_t n, int val) {
     return memset(ptr, n, val);
 }
 
-/*
-Deallocate like free
-*/
+
 void deallocate(fs_tree_node *node) {
     error_log("%s called on %p", __func__);
 
@@ -90,13 +80,7 @@ void deallocate(fs_tree_node *node) {
     node->data = NULL;
 }
 
-/*
-Construct a block to write to disk, metadata (from fs_tree_node) + data
-Metadata = type + name + len + uid + gid + perms + nlinks + data_size + atim + mtim + ctim < + data + > + inode_no + next_block
 
-The (block) will contain metadata and all data, last 64 bytes of each block left empty to be filled at the time of flushing
-Returns the number of blocks allocated and built!
-*/
 uint64_t constructBlock(fs_tree_node *node, void **ret) {
     error_log("%s called on %p", __func__, node);
     
@@ -258,7 +242,7 @@ fs_tree_node *reconstructNode(void *blockdata) {
     fs_tree_node *node = (fs_tree_node *)malloc(sizeof(fs_tree_node));
     if(!node) {
         error_log("no memory for node");
-        return -ENOMEM;
+        return (fs_tree_node *)(-ENOMEM);
     }
 
     uint64_t alloc = 0;     //bytes copied from blockdata
@@ -344,7 +328,7 @@ fs_tree_node *reconstructNode(void *blockdata) {
 }
 
 
-int openDisk(char *filename, int nbytes){
+int openDisk(char *filename, int nbytes) {
     error_log("%s called on %s", __func__, filename);
     
     int fd = open(filename, O_RDWR, 0666);
@@ -358,7 +342,8 @@ int openDisk(char *filename, int nbytes){
     return fd;
 }
 
-int readBlock(uint64_t blocknr, void *block){
+
+int readBlock(uint64_t blocknr, void *block) {
     error_log("%s called on fd : %d for block %d", __func__, diskfd, blocknr);
 
     int ret;
@@ -375,7 +360,8 @@ int readBlock(uint64_t blocknr, void *block){
     return ret;
 }
 
-int writeBlock(uint64_t blocknr, void *block){
+
+int writeBlock(uint64_t blocknr, void *block) {
     error_log("%s called on fd : %d for block %d", __func__, diskfd, blocknr);
     
     int ret;
@@ -391,6 +377,7 @@ int writeBlock(uint64_t blocknr, void *block){
     error_log("Returning with %d", ret);
     return ret;
 }
+
 
 uint64_t diskWriter(void *blocks_data, uint64_t blocks, uint64_t first) {
     error_log("%s called on fd : %d for blocks %lu from first %lu", __func__, diskfd, blocks, first);
@@ -414,6 +401,7 @@ uint64_t diskWriter(void *blocks_data, uint64_t blocks, uint64_t first) {
     return i;
 }
 
+
 fs_tree_node *diskReader(uint64_t block) {
     error_log("%s called on fd : %d from block %d", __func__, diskfd, block);
     
@@ -421,12 +409,16 @@ fs_tree_node *diskReader(uint64_t block) {
     readBlock(block, buf);
     fs_tree_node *node = reconstructNode(buf);
     
-    node->fullname = node->parent = node->children = node->data = NULL;
+    node->fullname = NULL;
+    node->parent = NULL;
+    node->children = NULL;
+    node->data = NULL;
 
     free(buf);
     error_log("Returning with node = %p and len = %u", node, node->len);
     return node;
 }
+
 
 uint64_t dataDiskReader(fs_tree_node *node) {
     error_log("%s called on node : %p ", __func__, node);
