@@ -22,7 +22,7 @@ int loadBitMap(int fd) {
 
     lseek(fd, 8, SEEK_SET);
     int ret = read(fd, &bmap_size, 8);
-    error_log("bmap size = %lu", bmap_size);
+    error_log("bmap size = %lu bytes", bmap_size);
 
     if(ret < 0) {
         error_log("Problem = %d\t read in %s", errno, __func__);
@@ -30,14 +30,14 @@ int loadBitMap(int fd) {
         exit(0);
     }
 
-    // bmap_size is number of blocks taken by bitmap
-    bitmap = (uint8_t *)malloc(bmap_size * BLOCK_SIZE);
+    // bmap_size is number of bytes taken by bitmap
+    bitmap = (uint8_t *)malloc(bmap_size);
     if(!bitmap) {
         return -1;
     }
 
     lseek(fd, SUPERBLOCKS * BLOCK_SIZE, SEEK_SET);
-    ret = read(fd, bitmap, bmap_size * BLOCK_SIZE);
+    ret = read(fd, bitmap, bmap_size);
 
     error_log("Returning with %d", ret);
     return ret;
@@ -47,11 +47,8 @@ int loadBitMap(int fd) {
 void saveBitMap() {
     error_log("%s called", __func__);
 
-    uint64_t i;
-    for(i = 0 ; i < bmap_size ; i++) {
-        lseek(diskfd, (SUPERBLOCKS + i) * BLOCK_SIZE, SEEK_SET);
-        write(diskfd, bitmap + i, BLOCK_SIZE);
-    }
+    lseek(diskfd, SUPERBLOCKS * BLOCK_SIZE, SEEK_SET);
+    write(diskfd, bitmap, bmap_size);
 
     error_log("%s done", __func__);
 }

@@ -41,7 +41,7 @@ int destroy_node(fs_tree_node *node) {
         deallocate(node);
     error_log("Erased data");
     
-    free(node);
+    //free(node);   // causes double free error
     error_log("Returning");
     return 0;
 }
@@ -68,6 +68,7 @@ int init_fs() {
     strcpy(root->name, "/");
 
     root->children = NULL;
+    root->ch_inodes = NULL;
     root->len = 0;
     root->nlinks = 2;
     root->parent = NULL;
@@ -190,7 +191,7 @@ fs_tree_node *add_fs_tree_node(const char *path, uint8_t type) {
     fs_tree_node *curr = root;
     int pathLength = strlen(path), sublen = 0;
     int i, j;
-    char *temp = (char *)malloc(sizeof(char) * pathLength);     //to store path until one level higher than path given
+    char *temp = (char *)malloc(sizeof(char) * (pathLength + 1));     //to store path until one level higher than path given
     strcpy(temp, path);
     
     for(i = pathLength - 1 ; temp[i] != '/' ; i--);     //find first / from back of path
@@ -220,16 +221,16 @@ fs_tree_node *add_fs_tree_node(const char *path, uint8_t type) {
         error_log("Path found to exist with %d children!", curr->len);
         fs_tree_node *parent = curr;
 
+        curr->len += 1;
+        curr->children = realloc(curr->children, sizeof(fs_tree_node *) * curr->len);
+        curr->children[curr->len - 1] = (fs_tree_node *)malloc(sizeof(fs_tree_node));
+        curr = curr->children[curr->len - 1];
+
         curr->inode_no = findFirstFreeBlock();
         if(curr->inode_no == -1) {
             error_log("Returning with error ENOSPC");
             return (fs_tree_node *)(-ENOSPC);
         }
-
-        curr->len += 1;
-        curr->children = realloc(curr->children, sizeof(fs_tree_node *) * curr->len);
-        curr->children[curr->len - 1] = (fs_tree_node *)malloc(sizeof(fs_tree_node));
-        curr = curr->children[curr->len - 1];
         
         //curr->name = (char *)malloc(sizeof(char) * sublen);     //add name to FS node
         strcpy(curr->name, fileName);
@@ -238,6 +239,7 @@ fs_tree_node *add_fs_tree_node(const char *path, uint8_t type) {
         strcpy(curr->fullname, path);
 
         curr->children = NULL;
+        curr->ch_inodes = NULL;
 
         curr->type = type;
         curr->len = 0;
@@ -282,7 +284,7 @@ fs_tree_node *add_fs_tree_node(const char *path, uint8_t type) {
 
     
     error_log("Going to write to disk");
-    void *buf;
+    void *buf = NULL;
     error_log("buf = %p", buf);
     int blocks_to_write = constructBlock(curr, &buf);
     error_log("Constructed block, bug = %p", buf);
@@ -313,12 +315,13 @@ int remove_fs_tree_node(const char *path) {
     // OS checks if path exists using getattr, no need to check explicitly
     // using node_exists to get FS tree node
 
-    uint64_t i, j;
+    uint64_t i;
     fs_tree_node *toDelete = node_exists(path);
     fs_tree_node *parent = toDelete->parent;
 
     error_log("Deleting node at %p, child of %p", toDelete, parent);
 
+    uint64_t next = toDelete->inode_no;
     dfs_dispatch(toDelete, &destroy_node);
 
     for(i = 0 ; i < parent->len ; i++) {
@@ -330,22 +333,18 @@ int remove_fs_tree_node(const char *path) {
 
     for( ; i < (parent->len - 1) ; i++) {                   // shift all children back one position, effectively deleting the node
         parent->children[i] = parent->children[i+1];
-        parent->children = realloc(parent->children, sizeof(fs_tree_node *) * (parent->len - 1));
+        parent->ch_inodes[i] = parent->ch_inodes[i+1];
     }
+
+    parent->children = realloc(parent->children, sizeof(fs_tree_node *) * (parent->len - 1));
+    parent->ch_inodes = realloc(parent->ch_inodes, sizeof(parent->inode_no) * (parent->len - 1));
     
+    --(parent->len);
+
     void *buf = malloc(BLOCK_SIZE);
-    uint64_t next = toDelete->inode_no;
+    error_log("Disk clear : next = %lu", next);
     while(next) {
         clearBitofMap(next);
-        for(i = 0 ; i < parent->len ; i++) {
-            if(parent->ch_inodes[i] == next) {
-                --(parent->len);
-                for(j = i ; j < parent->len ; j++)
-                    parent->ch_inodes[j] = parent->ch_inodes[j+1];
-                parent->ch_inodes = realloc(parent->ch_inodes, sizeof(parent->inode_no) * (parent->len));
-                break;
-            }
-        }
         readBlock(next, buf);
         memcpy(&next, buf + BLOCK_SIZE - sizeof(next), sizeof(next));
         error_log("NEXT = %lu", next);
@@ -371,6 +370,8 @@ int copy_nodes(fs_tree_node *from, fs_tree_node *to) {
 
     //to->parent = from->parent;        //link to parent
     to->children = from->children;      //links to children
+    to->ch_inodes = from->ch_inodes;
+    //to->inode_no = from->inode_no;
     to->len = from->len;                       //number of children
 
     to->data = from->data;						//data for read and write
@@ -388,19 +389,27 @@ int copy_nodes(fs_tree_node *from, fs_tree_node *to) {
 int load_fs(int diskfd) {
     error_log("%s called with diskfd %d", __func__, diskfd);
     uint64_t size;
+    lseek(diskfd, 0, SEEK_SET);
     read(diskfd, &size, sizeof(size));
     error_log("Size of disk : %lu", size);
 
     loadBitMap(diskfd);
     print_bitmap();
 
-    uint64_t toRead = (bmap_size + SUPERBLOCKS);
+    uint64_t toRead = ((bmap_size / BLOCK_SIZE + 1) + SUPERBLOCKS);
     error_log("toRead = %d", toRead);
 
     // Load root node
     root = diskReader(toRead);
     error_log("Root node at %p", root);
     error_log("With children %u", root->len);
+    
+    root->fullname = NULL;
+    root->parent = NULL;
+    root->children = NULL;
+    root->data = NULL;
+    root->block_count = 0;
+
     output_node(*root);
 
     fill_fs_tree(root);
@@ -413,6 +422,11 @@ int load_fs(int diskfd) {
 void fill_fs_tree(fs_tree_node *root) {
     error_log("%s called with root %p with name %s", __func__, root, root->name);
     uint64_t i;
+    root->fullname = NULL;
+    root->children = NULL;
+    root->data = NULL;
+    root->block_count = 0;
+
     root->children = (fs_tree_node **)malloc(sizeof(fs_tree_node *) * root->len);
 
     for(i = 0 ; i < root->len ; i++) {

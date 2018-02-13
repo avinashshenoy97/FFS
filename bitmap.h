@@ -17,7 +17,7 @@
 
 extern int diskfd;
 
-uint64_t bmap_size;
+uint64_t bmap_size;     // Size of BITMAP in bytes
 uint8_t *bitmap;
 
 /*

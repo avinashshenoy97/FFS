@@ -60,10 +60,7 @@ int main(int argc, char **argv){
 	// Calculate size of BITMAP in bits
 	uint64_t bsize = size / BLOCK_SIZE;
 	// Size of BITMAP in bytes
-	bsize /= 8;
-	// Size of BITMAP in blocks
-	bsize /= BLOCK_SIZE;
-	bsize++;
+	bsize /= 8;	
 	bmap_size = bsize;
 	error_log("bsize %lu to file\n", bsize);
 

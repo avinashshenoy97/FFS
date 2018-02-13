@@ -154,7 +154,7 @@ uint64_t constructBlock(fs_tree_node *node, void **ret) {
     memcpy(store + alloc, &(node->data_size), sizeof(node->data_size));
     alloc += sizeof(node->data_size);
 
-    error_log("Done writing data_size, alloc = %d", alloc);
+    error_log("Done writing data_size %lu, alloc = %d", node->data_size, alloc);
 
     memcpy(store + alloc, &(node->st_atim), sizeof(node->st_atim));
     alloc += sizeof(node->st_atim);
@@ -289,7 +289,7 @@ fs_tree_node *reconstructNode(void *blockdata) {
     memcpy(&(node->data_size), blockdata + alloc, sizeof(node->data_size));
     alloc += sizeof(node->data_size);
 
-    error_log("Done reading data_size, alloc = %d", alloc);
+    error_log("Done reading data_size %lu, alloc = %d", node->data_size, alloc);
 
     memcpy(&(node->st_atim), blockdata + alloc, sizeof(node->st_atim));
     alloc += sizeof(node->st_atim);
@@ -308,7 +308,7 @@ fs_tree_node *reconstructNode(void *blockdata) {
 
     memcpy(&(node->inode_no), blockdata + alloc, sizeof(node->inode_no));
     alloc += sizeof(node->inode_no);
-    error_log("Done reading inode, alloc = %d", alloc);
+    error_log("Done reading inode %lu, alloc = %d", node->inode_no, alloc);
 
     node->ch_inodes = (uint64_t *)malloc(sizeof(uint64_t) * node->len);
     error_log("Starting to load child inodes");
@@ -390,7 +390,7 @@ uint64_t diskWriter(void *blocks_data, uint64_t blocks, uint64_t first) {
         if(i != (blocks - 1))
             next = findFirstFreeBlock();
         
-        memcpy(blocks_data + (BLOCK_SIZE * i - 8), &next, sizeof(next)); // set the next block field
+        memcpy(blocks_data + (BLOCK_SIZE * (i+1) - 8), &next, sizeof(next)); // set the next block field
         writeBlock(toWrite, blocks_data + (i * BLOCK_SIZE));
     }
 

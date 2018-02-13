@@ -164,7 +164,7 @@ int ffs_read(const char *path, char *buf, size_t size, off_t offset,struct fuse_
     size_t len;
     curr = node_exists(path);
     dataDiskReader(curr);
-    error_log("Data disk read %4s", curr->data);
+    error_log("Data disk read %s", curr->data);
 
     len = curr->data_size;
 
@@ -191,14 +191,14 @@ int ffs_write(const char *path, const char *buf, size_t size, off_t offset, stru
     error_log("%s called on path : %s ; to write : %s ; size = %d ; offset = %d ;", __func__, path, buf, size, offset);
 
     fs_tree_node *curr = NULL;
-    size_t len;
+    size_t len = 0;
     curr = node_exists(path);
     len = curr->data_size;
 
     error_log("curr found at %p with data %d", curr, len);
 
     if (offset + size >= len){
-        void *new_buf;
+        void *new_buf = NULL;
 
         new_buf = reallocate(curr, offset+size+1);
         if (!new_buf && offset+size) {
@@ -217,7 +217,7 @@ int ffs_write(const char *path, const char *buf, size_t size, off_t offset, stru
     }
     
     memcpy(curr->data + offset, buf, size);
-    curr->data_size = offset+size;
+    curr->data_size = offset + size + 1;
 
     error_log("Copied data! Returning with size %d!", size);
     return size;
@@ -320,6 +320,7 @@ int ffs_rename(const char *from, const char *to) {
     // check if destination exists
     fs_tree_node *to_node = node_exists(to);
     fs_tree_node *from_node = node_exists(from);
+    fs_tree_node *from_parent;
 
     if(!from) {             // if from doesn't exist
         error_log("from file not found");
@@ -341,7 +342,7 @@ int ffs_rename(const char *from, const char *to) {
                 error_log("from node was copied to to node");
 
                 // Now, remove from node without destroying from_node's members (since to is using its members)
-                fs_tree_node *from_parent = from_node->parent;      // get parent of source node
+                from_parent = from_node->parent;      // get parent of source node
                 free(from_node->name);
                 free(from_node->fullname);
                 free(from_node);    // free the struct itself
@@ -357,6 +358,7 @@ int ffs_rename(const char *from, const char *to) {
                         int j;
                         for(j = i + 1 ; j < from_parent->len ; j++) {
                             from_parent->children[j-1] = from_parent->children[j];
+                            from_parent->ch_inodes[j-1] = from_parent->ch_inodes[j];
                         }
                         from_parent->len -= 1;  //reduce child count by 1
                         error_log("from_parents children reduced from %d to %d", from_parent->len-1, from_parent->len);
@@ -373,14 +375,17 @@ int ffs_rename(const char *from, const char *to) {
             }
         }
         else {  // if to node does not exist
-            fs_tree_node *temp = add_fs_tree_node(to, 1);        // create file at dest
-            copy_nodes(from_node, temp);    // copy from to to
+            to_node = add_fs_tree_node(to, 1);        // create file at dest
+            copy_nodes(from_node, to_node);    // copy from from to to
 
             // Now, remove from node without destroying from_node's members (since to is using its members)
-            fs_tree_node *from_parent = from_node->parent;      // get parent of source node
-            free(from_node->name);
-            free(from_node->fullname);
-            free(from_node);    // free the struct itself
+            from_parent = from_node->parent;      // get parent of source node
+            if(!from_node->name)
+                free(from_node->name);
+            if(!from_node->fullname)
+                free(from_node->fullname);
+            if(!from_node)
+                free(from_node);    // free the struct itself
                 
             error_log("from node was freed");
 
@@ -393,6 +398,7 @@ int ffs_rename(const char *from, const char *to) {
                     int j;
                     for(j = i + 1 ; j < from_parent->len ; j++) {
                         from_parent->children[j-1] = from_parent->children[j];
+                        from_parent->ch_inodes[j-1] = from_parent->ch_inodes[j];
                     }
                     from_parent->len -= 1;  //reduce child count by 1
                     error_log("from_parents children reduced from %d to %d", from_parent->len-1, from_parent->len);
@@ -431,10 +437,13 @@ int ffs_rename(const char *from, const char *to) {
         error_log("Copied from to to");
 
         // Now, remove from node without destroying from_node's members (since to is using its members)
-        fs_tree_node *from_parent = from_node->parent;      // get parent of source node
-        free(from_node->name);
-        free(from_node->fullname);
-        free(from_node);    // free the struct itself
+        from_parent = from_node->parent;      // get parent of source node
+        if(!from_node->parent)
+            free(from_node->name);
+        if(!from_node->fullname)
+            free(from_node->fullname);
+        if(!from_node)
+            free(from_node);    // free the struct itself
 
         error_log("from node was freed");
 
@@ -447,13 +456,27 @@ int ffs_rename(const char *from, const char *to) {
                 int j;
                 for(j = i + 1 ; j < from_parent->len ; j++) {
                     from_parent->children[j-1] = from_parent->children[j];
+                    from_parent->ch_inodes[j-1] = from_parent->ch_inodes[j];
                 }
                 from_parent->len -= 1;  //reduce child count by 1
-                error_log("from_parents children reduced from %d to %d", from_parent->len-1, from_parent->len);
+                from_parent->children = realloc(from_parent->children, sizeof(fs_tree_node *) * from_parent->len);
+                from_parent->ch_inodes = realloc(from_parent->ch_inodes, sizeof(from_parent->inode_no) * from_parent->len);
+                error_log("from_parents children reduced from %d to %d", from_parent->len+1, from_parent->len);
                 break;  
             }
         }
     }
+
+    void *buf;
+    uint64_t newblocks = constructBlock(from_parent, &buf);
+    diskWriter(buf, newblocks, from_parent->inode_no);
+    free(buf);
+
+    newblocks = constructBlock(to_node, &buf);
+    diskWriter(buf, newblocks, to_node->inode_no);
+    free(buf);
+
+    
 
     error_log("end of %s reached, going to return 0", __func__);
 
@@ -518,7 +541,7 @@ int ffs_flush(const  char *path, struct fuse_file_info *fi) {
     error_log("%s called on path : %s", __func__, path);
 
     fs_tree_node *node = node_exists(path);
-    void *buf;
+    void *buf = NULL;
     uint64_t blocks = constructBlock(node, &buf);
     diskWriter(buf, blocks, node->inode_no);
     error_log("Wrote file!");

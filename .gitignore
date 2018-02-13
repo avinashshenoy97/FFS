@@ -3,3 +3,4 @@ DS_STORE
 .Makefile.swp
 ffs
 a.out
+extras/.DS_Store
