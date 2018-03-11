@@ -1,4 +1,4 @@
-![FFS Icon](https://github.com/avinashshenoy97/test/blob/master/extras/icon.png)
+![FFS Icon](https://github.com/avinashshenoy97/FFS/blob/master/extras/icon.png)
 
 # FFS
 
@@ -97,7 +97,7 @@ The mountpoint, by default, is a folder created on the Desktop. You can `cd` int
     tree
 
 The output should look like
-![FFS Test Output](https://github.com/avinashshenoy97/test/blob/master/extras/output.png "Output")
+![FFS Test Output](https://github.com/avinashshenoy97/FFS/blob/master/extras/output.png "Output")
 
 
 Use this command to unmount FFS (remember to cd out of it first!)
