@@ -214,12 +214,16 @@ int ffs_write(const char *path, const char *buf, size_t size, off_t offset, stru
         
         error_log("Erased data from offset %d to size %d!", offset, size);
         //curr->data = new_buf;
+        curr->data_size = offset + size;
+        error_log("curr->data_size %lu", curr->data_size);
     }
     
     memcpy(curr->data + offset, buf, size);
-    curr->data_size = offset + size + 1;
 
     error_log("Copied data! Returning with size %d!", size);
+
+    ffs_flush(path, NULL);
+
     return size;
 }
 
@@ -329,6 +333,7 @@ int ffs_rename(const char *from, const char *to) {
 
     if(from_node->type == 1) {   // if from node is a file
         error_log("from node is a file");
+        dataDiskReader(from_node);
         if(to_node) {   // if to node exists
             error_log("to node exists");
             if(to_node->type == 1) {    // if to node is also file
@@ -336,16 +341,19 @@ int ffs_rename(const char *from, const char *to) {
 
                 remove_fs_tree_node(to);    // remove dest file
                 error_log("to node was removed");
-                add_fs_tree_node(to, 1);        // create new file at dest
+                to_node = add_fs_tree_node(to, 1);        // create new file at dest
                 error_log("to node was added");
                 copy_nodes(from_node, to_node);       // copy structs
                 error_log("from node was copied to to node");
 
                 // Now, remove from node without destroying from_node's members (since to is using its members)
                 from_parent = from_node->parent;      // get parent of source node
-                free(from_node->name);
-                free(from_node->fullname);
-                free(from_node);    // free the struct itself
+                //if(!from_node->name)
+                    //free(from_node->name);
+                if(!from_node->fullname)
+                    free(from_node->fullname);
+                if(!from_node)
+                    free(from_node);    // free the struct itself
 
                 error_log("from node was freed");
 
@@ -470,11 +478,19 @@ int ffs_rename(const char *from, const char *to) {
     void *buf;
     uint64_t newblocks = constructBlock(from_parent, &buf);
     diskWriter(buf, newblocks, from_parent->inode_no);
-    free(buf);
+    if(!buf)
+        free(buf);
 
     newblocks = constructBlock(to_node, &buf);
     diskWriter(buf, newblocks, to_node->inode_no);
-    free(buf);
+    if(!buf)
+        free(buf);
+
+    /*
+    newblocks = constructBlock(to_node->parent, &buf);
+    diskWriter(buf, newblocks, to_node->parent->inode_no);
+    if(!buf)
+        free(buf);*/
 
     
 

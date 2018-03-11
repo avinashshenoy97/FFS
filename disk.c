@@ -73,7 +73,8 @@ void *setBlocks(void *ptr, uint64_t n, int val) {
 void deallocate(fs_tree_node *node) {
     error_log("%s called on %p", __func__);
 
-    free(node->data);
+    if(!node->data)
+        free(node->data);
     
     node->data_size = 0;
     node->block_count = 0;
@@ -124,7 +125,7 @@ uint64_t constructBlock(fs_tree_node *node, void **ret) {
     memcpy(store + alloc, &(node->name), sizeof(node->name));
     alloc += sizeof(node->name);
 
-    error_log("Done writing name, alloc = %d", alloc);
+    error_log("Done writing name %s, alloc = %d", node->name, alloc);
 
     memcpy(store + alloc, &(node->len), sizeof(node->len));
     alloc += sizeof(node->len);
@@ -255,7 +256,7 @@ fs_tree_node *reconstructNode(void *blockdata) {
     memcpy(&(node->name), blockdata + alloc, sizeof(node->name));
     alloc += sizeof(node->name);
 
-    error_log("Done reading name, alloc = %d", alloc);
+    error_log("Done reading name %s, alloc = %d", node->name, alloc);
 
     memcpy(&(node->len), blockdata + alloc, sizeof(node->len));
     alloc += sizeof(node->len);
@@ -414,7 +415,8 @@ fs_tree_node *diskReader(uint64_t block) {
     node->children = NULL;
     node->data = NULL;
 
-    free(buf);
+    if(!buf)
+        free(buf);
     error_log("Returning with node = %p and len = %u", node, node->len);
     return node;
 }

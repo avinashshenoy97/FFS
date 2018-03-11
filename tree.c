@@ -166,7 +166,8 @@ fs_tree_node *node_exists(const char *path) {
                 }
             }
             error_log("Done searching");
-            free(sub);
+            if(!sub)
+                free(sub);
             if(!found) {
                 error_log("%s returning with 0 not found!", __func__);
                 return 0;
@@ -226,6 +227,8 @@ fs_tree_node *add_fs_tree_node(const char *path, uint8_t type) {
         curr->children[curr->len - 1] = (fs_tree_node *)malloc(sizeof(fs_tree_node));
         curr = curr->children[curr->len - 1];
 
+        //now curr is child
+
         curr->inode_no = findFirstFreeBlock();
         if(curr->inode_no == -1) {
             error_log("Returning with error ENOSPC");
@@ -279,8 +282,10 @@ fs_tree_node *add_fs_tree_node(const char *path, uint8_t type) {
     }
 
     error_log("FS Node added at %p", curr);
-    free(temp);
-    free(fileName);
+    if(!temp)
+        free(temp);
+    if(!fileName)
+        free(fileName);
 
     
     error_log("Going to write to disk");
@@ -350,7 +355,8 @@ int remove_fs_tree_node(const char *path) {
         error_log("NEXT = %lu", next);
     }
     error_log("Done");
-    free(buf);
+    if(!buf)
+        free(buf);
 
     error_log("Rewriting parent now");
     void *buf2;
@@ -365,8 +371,10 @@ int remove_fs_tree_node(const char *path) {
 int copy_nodes(fs_tree_node *from, fs_tree_node *to) {
     error_log("%s called", __func__);
     to->type = from->type;                       //type of node
-    //to->name = from->name;                         //name of node
+    //strcpy(to->name, from->name);                         //name of node
+    //from->name = NULL;
     //to->fullname = from->fullname;                     //full path of node
+    //to->inode_no = from->inode_no;
 
     //to->parent = from->parent;        //link to parent
     to->children = from->children;      //links to children
@@ -376,6 +384,7 @@ int copy_nodes(fs_tree_node *from, fs_tree_node *to) {
 
     to->data = from->data;						//data for read and write
     to->data_size = from->data_size;						//size of data
+    error_log("COPYING DATA %d : %10s : %10s", to->data_size, to->data, from->data);
     to->block_count = from->block_count;               // number of blocks
 
     to->st_atim = from->st_atim;            /* time of last access */
