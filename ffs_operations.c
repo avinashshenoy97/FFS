@@ -31,26 +31,32 @@ int ffs_getattr(const char *path, struct stat *s) {
 
     memset(s, 0, sizeof(struct stat));
 
+    s->st_dev = 666;
+    s->st_ino = curr->inode_no;
+
     switch(curr->type) {
         case 1:
             s->st_mode = S_IFREG | curr->perms;
+            s->st_nlink = 1;
             break;
 
         case 2:
             s->st_mode = S_IFDIR | curr->perms;
+            s->st_nlink = 2;
             break;
 
         default:
             error_log("Type not supported : %d", curr->type);
             return -ENOTSUP;
     }
-    
+
+    s->st_nlink += curr->len;
     s->st_uid = curr->uid;
     s->st_gid = curr->gid;
 
-    s->st_nlink = curr->nlinks;
-
     s->st_size = curr->data_size;
+    s->st_blocks = ((curr->data_size + NODE_SIZE) / 4096) + 1;
+    s->st_blocks *= 8;
 
     s->st_atime = (curr->st_atim).tv_sec;
     s->st_mtime = (curr->st_mtim).tv_sec;
@@ -116,6 +122,10 @@ int ffs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, off_t of
 
 int ffs_rmdir(const char *path) {
     error_log("%s called on path : %s", __func__, path);
+    if(node_exists(path)->len != 0) {
+        //printf("rmdir: failed to remove '%s': Directory not empty", path);
+        return -ENOTEMPTY;
+    }
     // OS checks if path exists using getattr, no need to check explicitly
     // Just forward responsibility to tree.c function
 
