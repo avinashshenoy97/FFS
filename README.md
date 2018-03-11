@@ -3,6 +3,7 @@
 [![GitHub issues](https://img.shields.io/github/issues/avinashshenoy97/FFS.svg?style=flat)](https://github.com/avinashshenoy97/FFS/issues)
 [![Open Source Love](https://badges.frapsoft.com/os/v1/open-source.svg?v=103)]()
 [![License](https://img.shields.io/badge/license-mit-brightgreen.svg?style=flat)](https://github.com/avinashshenoy97/FFS/blob/master/LICENSE)
+
 [![forthebadge](https://forthebadge.com/images/badges/60-percent-of-the-time-works-every-time.svg)](https://forthebadge.com)
 [![forthebadge](https://forthebadge.com/images/badges/compatibility-betamax.svg)](https://forthebadge.com)
 
