@@ -1,6 +1,4 @@
-![FFS Icon](https://github.com/avinashshenoy97/FFS/blob/master/extras/icon.png)
-
-# FFS
+# <img src="https://github.com/avinashshenoy97/FFS/blob/master/extras/icon.png" width="10%"> FFS
 
 [![GitHub issues](https://img.shields.io/github/issues/avinashshenoy97/FFS.svg?style=flat)](https://github.com/avinashshenoy97/FFS/issues)
 [![Open Source Love](https://badges.frapsoft.com/os/v1/open-source.svg?v=103)]()
